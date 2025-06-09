@@ -1,11 +1,12 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
-             x:Class="PCANAppMaui.MainPage">  
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PCANAppM.MainPage">
+
     <StackLayout>
 
         <BoxView HeightRequest="30" Color="transparent" />
-        
+
         <Switch
             x:Name="styleSwitch"
             Scale="1.6" 
@@ -14,33 +15,29 @@
             OnColor="Red"
             ThumbColor="Red"/>
 
-        <Image  
-            Source="pcan.png"  
-            HeightRequest="500"  
-            Aspect="AspectFit"  
-            HorizontalOptions="Center"   
-            VerticalOptions="Center" 
-            />
+        <Image
+        Source="pcan.png"
+        HeightRequest="500"
+        Aspect="AspectFit"
+        HorizontalOptions="Center" 
+        VerticalOptions="Center"
+        />
 
-        <BoxView HeightRequest = "5" Color = "transparent" />
+        <!-- Add a Label with x:Name="StatusLabel" to fix the CS0103 error -->
+        <Label x:Name="StatusLabel"  
+           Text="Initializing..."  
+           HorizontalOptions="Center"  
+           VerticalOptions="Center"
+           FontSize="50"
+           FontAttributes="Bold"
+           FontFamily="InriaSansRegular"
+           />
         
-        <!-- Fixing the XLS0431 and XC0101 errors by replacing x:Static with a valid binding or static resource -->
-        <!-- Add a Label with x:Name="StatusLabel" to fix the CS0103 error -->    
-        <Label x:Name="StatusLabel"    
-               Text="Initializing..."    
-               HorizontalOptions="Center"    
-               VerticalOptions="Center"  
-               FontSize="50"  
-               FontAttributes="Bold"  
-               FontFamily="InriaSansRegular"    
-               />
+        <BoxView HeightRequest="30" Color="transparent" />
 
-        <BoxView HeightRequest = "30" Color = "transparent" />
-
-        <!--Change loading icon later-->
         <Image
             x:Name="StatusImage1"
-            Source="loading.png"
+            Source="green_check.jpg"
             HeightRequest="100"
             Aspect="AspectFit"
             HorizontalOptions="Center"
@@ -52,9 +49,8 @@
             BackgroundColor="Black"
             FontSize="Medium"
             WidthRequest="80"  
-            Margin="1280,-40,0,0" 
- 
-            />
+            Margin="1280,-40,0,0" />
 
-    </StackLayout>    
+    </StackLayout>
+
 </ContentPage>
