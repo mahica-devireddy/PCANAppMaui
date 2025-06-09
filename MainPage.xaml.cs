@@ -1,15 +1,15 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Timers;
 using Microsoft.Maui.Controls;
 using Timer = System.Timers.Timer;
-using System.Threading.Tasks;   
+using System.Threading.Tasks;
 
 #if WINDOWS
 using PCANAppMaui.Platforms.Windows;
 #endif
 
-namespace PCANAppMaui
+namespace PCANAppM
 {
     public partial class MainPage : ContentPage
     {
