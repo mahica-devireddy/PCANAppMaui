@@ -1,56 +1,61 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="PCANAppM.MainPage">
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
+             xmlns:local="clr-namespace:PCANAppM.Resources.Languages"  
+             xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"
+             x:Class="PCANAppM.MainPage"             
+             BackgroundColor="Black">
 
     <StackLayout>
 
         <BoxView HeightRequest="30" Color="transparent" />
 
-        <Switch
-            x:Name="styleSwitch"
-            Scale="1.6" 
-            HorizontalOptions="End"
-            Margin="1350,0,0,0"
-            OnColor="Red"
-            ThumbColor="Red"/>
+        <ImageButton
+            Source="language_icon.png"
+            HeightRequest="65"
+            WidthRequest="90"
+            Margin="-1300, 0, 0, 0"
+            BackgroundColor="Transparent"
+            Clicked="OnLanguageButtonClicked"
+             />
 
-        <Image
-        Source="pcan.png"
-        HeightRequest="500"
-        Aspect="AspectFit"
-        HorizontalOptions="Center" 
-        VerticalOptions="Center"
-        />
+        <Image  
+            Source="blackpcan.png"  
+            HeightRequest="500"  
+            Aspect="AspectFit"  
+            HorizontalOptions="Center"   
+            VerticalOptions="Center"  
+            />  
 
-        <!-- Add a Label with x:Name="StatusLabel" to fix the CS0103 error -->
-        <Label x:Name="StatusLabel"  
-           Text="Initializing..."  
-           HorizontalOptions="Center"  
-           VerticalOptions="Center"
-           FontSize="50"
-           FontAttributes="Bold"
-           FontFamily="InriaSansRegular"
-           />
-        
-        <BoxView HeightRequest="30" Color="transparent" />
+        <Label x:Name="StatusLabel"    
+           Text="{localization:Translate Initializing}"    
+           HorizontalOptions="Center"    
+           VerticalOptions="Center"  
+           FontSize="50"  
+           FontAttributes="Bold"  
+           TextColor="WhiteSmoke"  
+           FontFamily="RobotoRegular"  
+           />  
 
-        <Image
-            x:Name="StatusImage1"
-            Source="green_check.jpg"
-            HeightRequest="100"
-            Aspect="AspectFit"
-            HorizontalOptions="Center"
-            VerticalOptions="Center" />
+        <BoxView HeightRequest="30" Color="transparent" />  
 
-        <Button
-            Text="Next"
-            BorderColor="Black"
-            BackgroundColor="Black"
-            FontSize="Medium"
-            WidthRequest="80"  
-            Margin="1280,-40,0,0" />
+        <Image  
+            x:Name="StatusImage1"  
+            Source="green_check.png"  
+            HeightRequest="100"  
+            Aspect="AspectFit"  
+            HorizontalOptions="Center"  
+            VerticalOptions="Center" />  
 
-    </StackLayout>
+        <Button  
+            Text="{localization:Translate NextButton}"  
+            BackgroundColor="Black"  
+            FontSize="Medium"  
+            FontFamily="InriaSansRegular"  
+            WidthRequest="120"    
+            Margin="1230,-40,0,0"  
+            Clicked="OnNextButtonClicked" />  
+
+    </StackLayout>  
 
 </ContentPage>
