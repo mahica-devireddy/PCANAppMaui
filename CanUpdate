@@ -1,0 +1,92 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using Peak.Can.Basic;
+
+namespace PCANAppM.Services
+{
+    /// <summary>
+    /// Encapsulates CAN ID update sequences for various devices.
+    /// </summary>
+    public class CanIdUpdateService
+    {
+        private readonly PCAN_USB _pcanUsb;
+        private readonly Action<CanMessageViewModel> _log;
+
+        /// <summary>
+        /// Defines a single CAN frame: an ID template and associated data bytes.
+        /// Use '{0}' in the IdTemplate to substitute the current ID.
+        /// </summary>
+        public record FrameSpec(string IdTemplate, byte[] Data);
+
+        public CanIdUpdateService(PCAN_USB pcanUsb, Action<CanMessageViewModel> logCallback)
+        {
+            _pcanUsb = pcanUsb ?? throw new ArgumentNullException(nameof(pcanUsb));
+            _log = logCallback ?? throw new ArgumentNullException(nameof(logCallback));
+        }
+
+        /// <summary>
+        /// Sends a sequence of frames after formatting each frame's ID with the current ID.
+        /// </summary>
+        private void SendSequence(string currentIdHex, IEnumerable<FrameSpec> sequence)
+        {
+            string cur = (currentIdHex ?? "00").PadLeft(2, '0').ToUpperInvariant();
+
+            foreach (var spec in sequence)
+            {
+                // Format ID by replacing {0} with current ID hex
+                string idHex = spec.IdTemplate.Replace("{0}", cur);
+                SendStep(idHex, spec.Data);
+            }
+        }
+
+        /// <summary>
+        /// Sends one CAN frame and logs the transmitted message.
+        /// </summary>
+        private void SendStep(string canIdHex, byte[] data)
+        {
+            uint canId = uint.Parse(canIdHex, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+            int len = data.Length;
+
+            var status = _pcanUsb.WriteFrame(canId, len, data, canId > 0x7FF);
+
+            _log(new CanMessageViewModel
+            {
+                Direction = "Tx",
+                Id = $"0x{canId:X}",
+                Data = string.Join(" ", data.Take(len).Select(b => b.ToString("X2")))
+            });
+        }
+
+        /// <summary>
+        /// Updates the CAN ID for a Boom Angle Sensor (BAS) using its standard 4-step sequence.
+        /// </summary>
+        public void UpdateAngleSensorCanId(string currentIdHex, string newIdHex)
+        {
+            var frames = new[]
+            {
+                new FrameSpec("18EA{0}00", new byte[]{ 0x00,0xEF,0x00,0,0,0,0,0 }),
+                new FrameSpec("18EF{0}00", new byte[]{ 0x06, Convert.ToByte(newIdHex, 16),0x00,0xFF,0xFF,0xFF,0xFF,0xFF }),
+                new FrameSpec("18EA{0}00", new byte[]{ 0x00,0xEF,0x00,0,0,0,0,0 }),
+                new FrameSpec("18EF{0}00", new byte[]{ 0xFA,(byte)'s',(byte)'a',(byte)'v',(byte)'e',0,0,0 })
+            };
+
+            SendSequence(currentIdHex, frames);
+        }
+
+        /// <summary>
+        /// Updates the CAN ID for a KZ Valve using its single-step sequence.
+        /// </summary>
+        public void UpdateKzValveCanId(string currentIdHex, string newIdHex)
+        {
+            var frames = new[]
+            {
+                // ID: 0x18EF<cur>01, Data: [00,00,00,04,newId,0,0,0]
+                new FrameSpec("18EF{0}01", new byte[]{ 0,0,0,4, Convert.ToByte(newIdHex, 16),0,0,0 })
+            };
+
+            SendSequence(currentIdHex, frames);
+        }
+    }
+}
