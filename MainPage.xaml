@@ -57,25 +57,32 @@
              HorizontalTextAlignment="Center" />
 
       <!-- Status icon (green_check.png or red_ex.png) -->
-      <Image x:Name="StatusImage1"
+      <ImageButton x:Name="StatusImage1"
              HeightRequest="80"
              Aspect="AspectFit"
-             HorizontalOptions="Center" />
-    </VerticalStackLayout>
+             BackgroundColor="Transparent"
+             Clicked="OnStatusImageClicked"
+             HorizontalOptions="Center">
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="PointerOver">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="#DDDDDD" />
+                            <Setter Property="Scale" Value="1.05" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Normal">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="Transparent" />
+                            <Setter Property="Scale" Value="1" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </VisualStateManager.VisualStateGroups>
+    </ImageButton>
 
-    <!-- FOOTER -->
-    <Grid Grid.Row="2"
-          Padding="20">
-      <Button Text="{localization:Translate NextButton}"
-              Clicked="OnNextButtonClicked"
-              FontSize="18"
-              FontAttributes="Bold"
-              BackgroundColor="WhiteSmoke"
-              TextColor="Black"
-              HorizontalOptions="Center"
-              WidthRequest="140"
-              HeightRequest="48" />
-    </Grid>
 
   </Grid>
 </ContentPage>
