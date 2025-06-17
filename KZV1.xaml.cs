@@ -209,6 +209,28 @@ public partial class KZV : ContentPage
 #endif
     }
 }
+public class CanIdUpdateService
+{
+    private readonly PCAN_USB _pcanUsb;
+    private readonly Action<CanMessageViewModel> _logger;
+
+    public CanIdUpdateService(PCAN_USB pcanUsb, Action<CanMessageViewModel> logger)
+    {
+        _pcanUsb = pcanUsb;
+        _logger = logger;
+    }
+
+    public void UpdateKzValveCanId(string oldId, string newId)
+    {
+        // This is a placeholder for your CAN ID update logic
+        _logger(new CanMessageViewModel
+        {
+            Direction = "Info",
+            Id = $"0x{oldId}",
+            Data = $"CAN ID changed to 0x{newId}"
+        });
+    }
+}
 
 public class CanMessageViewModel
 {
