@@ -96,6 +96,16 @@ public partial class KZV : ContentPage
             _canMessages.Insert(0, new CanMessageViewModel { Data = "CAN stopped." });
         }
     }
+    private void OnSendClicked(object s,EventArgs e)
+    {
+            if(_pcanUsb==null||!_isStarted)return;
+            if(!uint.TryParse(CanIdEntry1.Text,out var cid)){_canMessages.Insert(0,new CanMessageViewModel{Data="Invalid CAN ID."});return;}
+            var pr=DataEntry1.Text?.Split(' ',StringSplitOptions.RemoveEmptyEntries);if(pr==null){_canMessages.Insert(0,new CanMessageViewModel{Data="No data."});return;}
+            var d=new byte[8];int l=0;foreach(var p in pr){if(l>=8)break;if(byte.TryParse(p,NumberStyles.HexNumber,CultureInfo.InvariantCulture,out var b))d[l++]=b;else{_canMessages.Insert(0,new CanMessageViewModel{Data=$"Invalid byte: {p}"});return;}}
+            if(!int.TryParse(LengthEntry1.Text,out var dl)||dl<0||dl>8)dl=l;
+            _pcanUsb.WriteFrame(cid,dl,d,cid>0x7FF);
+            _canMessages.Insert(0,new CanMessageViewModel{Direction="Tx",Id=$"0x{cid:X}",Data=string.Join(" ",d.Take(dl).Select(b=>b.ToString("X2")))});
+    }
 
     private async void OnConfirmCanIdButtonClicked(object sender, EventArgs e)
     {
