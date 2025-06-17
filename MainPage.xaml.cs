@@ -9,7 +9,7 @@ using System.Globalization;
 using PCANAppM.Resources.Languages;
 
 #if WINDOWS
-using PCANAppMaui.Platforms.Windows;
+using PCANAppM.Platforms.Windows;
 #endif
 
 namespace PCANAppM
@@ -19,6 +19,7 @@ namespace PCANAppM
         private readonly ILocalizationResourceManager _localizationResourceManager;
         private Timer deviceCheckTimer;
         private string lastStatus = "";
+        private bool isDeviceConnected = false;
 
         public MainPage(ILocalizationResourceManager localizationResourceManager)
         {
@@ -56,11 +57,13 @@ namespace PCANAppM
             {
                 status = devices[0] + " " + _localizationResourceManager["Status2"];
                 imageSource = "green_check.png";
+                isDeviceConnected = true;
             }
             else
             {
                 status = _localizationResourceManager["Status1"];
                 imageSource = "red_ex.png";
+                isDeviceConnected = false;
             }
 
             if (status != lastStatus)
@@ -75,9 +78,40 @@ namespace PCANAppM
 #endif
         }
 
-        private void OnLanguageButtonClicked(object sender, EventArgs e)
+        private async void OnStatusImageClicked(object sender, EventArgs e)
         {
-            LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
+            if (isDeviceConnected)
+            {
+                await Navigation.PushAsync(new Menu(_localizationResourceManager));
+            }
+            else
+            {
+                await DisplayAlert("Connection Required", "You must plug in PCAN USB", "ok");
+            }
+        }
+
+        private async void OnLanguageButtonClicked(object sender, EventArgs e)
+        {
+            string action = await DisplayActionSheet(
+                "Select Language", 
+                "Cancel", 
+                null, 
+                "English", 
+                "Español");
+
+            if (action == "English")
+            {
+                LanguageState.CurrentLanguage = "en";
+            }
+            else if (action == "Español")
+            {
+                LanguageState.CurrentLanguage = "es";
+            }
+            else
+            {
+                return; // Cancel or outside click
+            }
+
             _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
             UpdateDeviceStatus();
         }
@@ -85,6 +119,11 @@ namespace PCANAppM
         private async void OnNextButtonClicked(object sender, EventArgs e)
         {
             await Navigation.PushAsync(new Menu(_localizationResourceManager));
+        }
+
+        private void StatusImage1_Clicked(object sender, EventArgs e)
+        {
+
         }
     }
 
