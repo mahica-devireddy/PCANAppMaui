@@ -23,17 +23,17 @@
 
         <!-- CAN ID entry -->
         <HorizontalStackLayout>
-            <!--<Entry x:Name="CanIdEntry1" 
+            <Entry x:Name="CanIdEntry1" 
                    Placeholder="CAN ID (dec)" 
                    WidthRequest="120" 
                    TextChanged="OnCanIdEntryChanged" 
-                   TextColor="Black"/>-->
+                   TextColor="Black"/>
 
-            <!--<Entry x:Name="CanIdHexEntry1" 
+            <Entry x:Name="CanIdHexEntry1" 
                    Placeholder="CAN ID (hex)" 
                    WidthRequest="120" 
                    TextChanged="OnCanIdHexEntryChanged" 
-                   TextColor="Black"/>-->
+                   TextColor="Black"/>
         </HorizontalStackLayout>
 
         <!-- Latest CAN ID label -->
