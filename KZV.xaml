@@ -4,49 +4,75 @@
              x:Class="PCANAppM.KZV"
              Title="KZV Configuration">
     <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="20">
+        <VerticalStackLayout Padding="20" Spacing="15">
 
-            <!-- INITIAL VIEW -->
-            <StackLayout x:Name="InitialKzvView" IsVisible="True" Spacing="20">
-                <Image Source="kzv_main.png"
-                       Aspect="AspectFit"
-                       HeightRequest="300" />
-                <Button Text="Set CAN ID"
-                        Clicked="OnSetCanIdClicked"
-                        HorizontalOptions="Center" />
-            </StackLayout>
+            <!-- Start / Stop CAN -->
+            <Button x:Name="StartStopButton1"
+                    Text="Start"
+                    Clicked="OnStartStopClicked"
+                    TextColor="WhiteSmoke"
+                    BackgroundColor="Black"
+                    HorizontalOptions="Center" />
 
-            <!-- SET CAN ID DIALOG -->
-            <StackLayout x:Name="SetCanIdView" IsVisible="False" Spacing="15">
-                <Label Text="Enter New CAN ID (hex):"
-                       FontAttributes="Bold" />
-                <Entry x:Name="NewCanIdEntry"
-                       Placeholder="e.g. 2F"
-                       WidthRequest="150" />
-                <Button Text="Set"
-                        Clicked="OnSetClicked"
-                        HorizontalOptions="Center" />
-            </StackLayout>
+            <!-- Manual ID/Data Entry -->
+            <HorizontalStackLayout Spacing="10">
+                <Entry x:Name="CanIdEntry1"
+                       Placeholder="ID (dec)"
+                       Keyboard="Numeric"
+                       TextChanged="OnCanIdEntryChanged"
+                       WidthRequest="100" />
+                <Entry x:Name="CanIdHexEntry1"
+                       Placeholder="ID (hex)"
+                       Keyboard="Text"
+                       TextChanged="OnCanIdHexEntryChanged"
+                       WidthRequest="100" />
+            </HorizontalStackLayout>
 
-            <!-- CONFIRMATION DIALOG -->
-            <StackLayout x:Name="ConfirmCanIdView" IsVisible="False" Spacing="15">
-                <Label x:Name="ConfirmText"
-                       Text="Confirm new CAN ID?"
-                       FontAttributes="Bold" />
-                <HorizontalStackLayout Spacing="20" HorizontalOptions="Center">
-                    <Button Text="Confirm"
-                            Clicked="OnConfirmClicked" />
-                    <Button Text="Cancel"
-                            Clicked="OnCancelConfirmClicked" />
-                </HorizontalStackLayout>
-            </StackLayout>
+            <Entry x:Name="DataEntry1"
+                   Placeholder="Data bytes (hex)" />
+            <Entry x:Name="LengthEntry1"
+                   Placeholder="Length"
+                   Keyboard="Numeric" />
 
-            <!-- Latest CAN ID -->
-            <Label x:Name="LatestCanIdLabel"
-                   Text="Latest CAN ID: --"
-                   FontAttributes="Bold"
+            <Button x:Name="SendButton1"
+                    Text="Send"
+                    Clicked="OnSendClicked"
+                    IsEnabled="False"
+                    TextColor="WhiteSmoke"
+                    BackgroundColor="Black"
+                    HorizontalOptions="Center" />
+
+            <!-- Received / Sent Messages -->
+            <Label Text="Received Messages:" TextColor="Black" />
+            <CollectionView x:Name="CanMessagesView"
+                            HeightRequest="200">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <HorizontalStackLayout Spacing="10">
+                            <Label Text="{Binding Direction}" WidthRequest="30" />
+                            <Label Text="{Binding Id}" WidthRequest="80" />
+                            <Label Text="{Binding Data}" />
+                        </HorizontalStackLayout>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <!-- Update CAN ID Section -->
+            <Entry x:Name="NewCanIdEntry1"
+                   Placeholder="New ID (hex)"
                    HorizontalOptions="Center"
-                   Margin="0,20,0,0" />
+                   WidthRequest="200" />
+
+            <Button x:Name="UpdateCanIdButton1"
+                    Text="Update CAN ID"
+                    Clicked="OnConfirmCanIdButtonClicked"
+                    HorizontalOptions="Center" />
+
+            <!-- Display latest CAN ID -->
+            <Label x:Name="LatestCanIdLabel1"
+                   Text="Latest CAN ID: --"
+                   TextColor="Black"
+                   HorizontalOptions="Center" />
 
         </VerticalStackLayout>
     </ScrollView>
