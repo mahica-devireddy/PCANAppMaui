@@ -7,7 +7,7 @@
     shell:Shell.NavBarIsVisible="False"  
     x:Class="PCANAppM.Menu" 
     BackgroundColor="Black">
-    
+
     <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,Auto" Padding="20">
 
         <!-- HEADER -->
@@ -45,50 +45,53 @@
                        HorizontalTextAlignment="Center"  
                        Margin="0,0,0,0" />  
 
-                <Button Text="{localization:Translate BAS}"  
-                        HorizontalOptions="Start"
-                        FontFamily="BarlowRegular"  
-                        TextColor="White"  
-                        FontAttributes="Bold"  
-                        FontSize="28"  
-                        BackgroundColor="Transparent"  
-                        BorderColor="White"  
-                        BorderWidth="5"  
-                        CornerRadius="50"  
-                        HeightRequest="100"  
-                        WidthRequest="600"
-                        Margin="100,0,0,0"
-                        Clicked="OnBoomAngleSensorClicked" />
+                <HorizontalStackLayout HorizontalOptions="Start" Spacing="20" Margin="100,0,0,0">
+                    <Image Source="angle_sensor.png" HeightRequest="60" WidthRequest="60" VerticalOptions="Center" />
+                    <Button Text="{localization:Translate BAS}"  
+                            FontFamily="BarlowRegular"  
+                            TextColor="White"  
+                            FontAttributes="Bold"  
+                            FontSize="28"  
+                            BackgroundColor="Transparent"  
+                            BorderColor="White"  
+                            BorderWidth="5"  
+                            CornerRadius="50"  
+                            HeightRequest="100"  
+                            WidthRequest="600"
+                            Clicked="OnBoomAngleSensorClicked" />
+                </HorizontalStackLayout>
 
-                <Button Text="{localization:Translate KZV}"   
-                        HorizontalOptions="Start"
-                        TextColor="White"  
-                        FontAttributes="Bold"  
-                        FontFamily="BarlowRegular"  
-                        FontSize="28"  
-                        BackgroundColor="Transparent"  
-                        BorderColor="White"  
-                        BorderWidth="5"  
-                        CornerRadius="50"  
-                        HeightRequest="100" 
-                        WidthRequest="600"
-                        Margin="100,0,0,0"
-                        Clicked="OnKZValveClicked" />
+                <HorizontalStackLayout HorizontalOptions="Start" Spacing="20" Margin="100,0,0,0">
+                    <Image Source="angle_sensor.png" HeightRequest="60" WidthRequest="60" VerticalOptions="Center" />
+                    <Button Text="{localization:Translate KZV}"   
+                            TextColor="White"  
+                            FontAttributes="Bold"  
+                            FontFamily="BarlowRegular"  
+                            FontSize="28"  
+                            BackgroundColor="Transparent"  
+                            BorderColor="White"  
+                            BorderWidth="5"  
+                            CornerRadius="50"  
+                            HeightRequest="100" 
+                            WidthRequest="600"
+                            Clicked="OnKZValveClicked" />
+                </HorizontalStackLayout>
 
-                <Button Text="{localization:Translate FTLS}" 
-                        HorizontalOptions="Start"
-                        TextColor="White"  
-                        FontAttributes="Bold"
-                        FontFamily="BarlowRegular"  
-                        FontSize="28"  
-                        BackgroundColor="Transparent"  
-                        BorderColor="White"  
-                        BorderWidth="5"  
-                        CornerRadius="50"  
-                        HeightRequest="100"  
-                        WidthRequest="600"
-                        Margin="100,0,0,0"
-                        Clicked="OnFluidTankLevelSensorClicked" />  
+                <HorizontalStackLayout HorizontalOptions="Start" Spacing="20" Margin="100,0,0,0">
+                    <Image Source="angle_sensor.png" HeightRequest="60" WidthRequest="60" VerticalOptions="Center" />
+                    <Button Text="{localization:Translate FTLS}" 
+                            TextColor="White"  
+                            FontAttributes="Bold"
+                            FontFamily="BarlowRegular"  
+                            FontSize="28"  
+                            BackgroundColor="Transparent"  
+                            BorderColor="White"  
+                            BorderWidth="5"  
+                            CornerRadius="50"  
+                            HeightRequest="100"  
+                            WidthRequest="600"
+                            Clicked="OnFluidTankLevelSensorClicked" />  
+                </HorizontalStackLayout>
             </VerticalStackLayout> 
         </Grid>  
 
