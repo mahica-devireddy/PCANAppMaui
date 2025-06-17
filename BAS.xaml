@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
+             x:Class="PCANAppM.BAS">  
+    <VerticalStackLayout Padding="20" Spacing="10">  
+
+        <!-- Device selection -->  
+        <Picker x:Name="DevicePicker"   
+                Title="Select Device"   
+                TextColor="Black" />  
+
+        <!-- Baud rate selection -->  
+        <Picker x:Name="BaudRatePicker"   
+                Title="Select Baud Rate"   
+                TextColor="Black"/>  
+
+        <!-- Start/Stop button -->
+        <Button x:Name="StartStopButton"   
+                Text="Start"   
+                Clicked="OnStartStopClicked"  
+                TextColor="WhiteSmoke"/> 
+
+        <!-- CAN ID entry -->  
+        <HorizontalStackLayout>
+            <Entry x:Name="CanIdEntry"   
+                   Placeholder="CAN ID (dec)"   
+                   WidthRequest="120"   
+                   TextChanged="OnCanIdEntryChanged"   
+                   TextColor="Black"/>
+
+            <Entry x:Name="CanIdHexEntry"   
+                   Placeholder="CAN ID (hex)"   
+                   WidthRequest="120"   
+                   TextChanged="OnCanIdHexEntryChanged"   
+                   TextColor="Black"/>  
+        </HorizontalStackLayout>  
+
+        <!-- Latest CAN ID label -->  
+        <Label x:Name="LatestCanIdLabel"   
+               Text="Latest CAN ID: None"   
+               TextColor="Black" />  
+
+        <!-- Update CAN ID button -->  
+        <Button x:Name="UpdateCanIdButton"  
+                Text="Update Device CAN ID"  
+                Clicked="UpdateAngleSensorCanId"  
+                HorizontalOptions="Center" />  
+
+        <Entry x:Name="NewCanIdEntry"  
+               Placeholder="Enter new CAN ID (hex)"  
+               IsVisible="False"  
+               HorizontalOptions="Center"  
+               WidthRequest="200" />  
+
+        <Button x:Name="ConfirmCanIdButton"  
+                Text="Confirm New CAN ID"  
+                IsVisible="False"  
+                Clicked="OnConfirmCanIdButtonClicked"  
+                HorizontalOptions="Center" />  
+
+        <!-- Data entry -->  
+        <HorizontalStackLayout>  
+            <Entry x:Name="DataEntry"   
+                   Placeholder="Data (e.g. 11 22 33 44)"   
+                   WidthRequest="250"/>  
+            <Entry x:Name="LengthEntry"   
+                   Placeholder="Len"   
+                   WidthRequest="50"/>  
+        </HorizontalStackLayout>  
+
+        <!-- Send button -->  
+        <Button x:Name="SendButton"   
+                Text="Send"   
+                Clicked="OnSendClicked"   
+                IsEnabled="False"   
+                TextColor="WhiteSmoke"/>  
+
+        <!-- Received messages -->  
+        <Label Text="Received Messages:"   
+               TextColor="Black" />  
+        <CollectionView x:Name="CanMessagesView" HeightRequest="200" ItemsSource="{Binding}">  
+            <CollectionView.ItemTemplate>  
+                <DataTemplate>  
+                    <Grid Padding="4">  
+                        <Grid.ColumnDefinitions>  
+                            <ColumnDefinition Width="Auto"/>  
+                            <ColumnDefinition Width="Auto"/>  
+                            <ColumnDefinition Width="*"/>  
+                        </Grid.ColumnDefinitions>  
+                        <Label Grid.Column="0" Text="{Binding Direction}" WidthRequest="40"/>  
+                        <Label Grid.Column="1" Text="{Binding Id}" WidthRequest="100"/>  
+                        <Label Grid.Column="2" Text="{Binding Data}" />  
+                    </Grid>  
+                </DataTemplate>  
+            </CollectionView.ItemTemplate>  
+        </CollectionView>  
+    </VerticalStackLayout>  
+</ContentPage>
