@@ -97,6 +97,19 @@ public partial class BAS : ContentPage
             _canMessages.Insert(0, new CanMessageViewModel { Data = "CAN stopped." });
         }
     }
+    private void OnSendClicked(object sender, EventArgs e)
+    {
+            if (_pcanUsb==null||!_isStarted) return;
+            if(!uint.TryParse(CanIdEntry.Text,out var canId))
+            { _canMessages.Insert(0,new CanMessageViewModel{Data="Invalid CAN ID."});return; }
+            var parts=DataEntry.Text?.Split(' ',StringSplitOptions.RemoveEmptyEntries);
+            if(parts==null){_canMessages.Insert(0,new CanMessageViewModel{Data="No data."});return;}
+            var data=new byte[8];int len=0;
+            foreach(var p in parts){if(len>=8)break;if(byte.TryParse(p,NumberStyles.HexNumber,CultureInfo.InvariantCulture,out var b))data[len++]=b;else{_canMessages.Insert(0,new CanMessageViewModel{Data=$"Invalid byte: {p}"});return;}}
+            if(!int.TryParse(LengthEntry.Text,out var dl)||dl<0||dl>8)dl=len;
+            _pcanUsb.WriteFrame(canId,dl,data,canId>0x7FF);
+            _canMessages.Insert(0,new CanMessageViewModel{Direction="Tx",Id=$"0x{canId:X}",Data=string.Join(" ",data.Take(dl).Select(b=>b.ToString("X2")))});
+    }
 
     private async void OnConfirmCanIdButtonClicked(object sender, EventArgs e)
     {
