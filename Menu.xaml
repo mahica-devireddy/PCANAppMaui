@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
+             xmlns:local="clr-namespace:PCANAppM.Resources.Languages"  
+             xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"
+             x:Class="PCANAppM.Menu" 
+             BackgroundColor="Black">  
+    <StackLayout>
+
+        <BoxView HeightRequest="10" Color="Transparent" />
+
+        <!-- First row: Button + Image -->
+        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" HorizontalOptions="Center">
+            <Button  
+                Grid.Column="0"
+                WidthRequest="450"
+                HeightRequest="230"
+                BackgroundColor="DodgerBlue"
+                BorderColor="Black"
+                BorderWidth="8"
+                CornerRadius="150"
+                FontFamily="InriaSansRegular"  
+                Text="{localization:Translate BAS}"
+                FontSize="30"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Clicked="OnBoomAngleSensorClicked"/>
+
+            <BoxView Grid.Column="1"
+              WidthRequest="400"
+              Color="Transparent" />    
+
+            <Image
+                Grid.Column="1"
+                Source="bas.jpg"
+                WidthRequest="300"
+                HeightRequest="200"
+                HorizontalOptions="End"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <BoxView HeightRequest="0" Color="Transparent" />
+
+        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" HorizontalOptions="Center">
+            <Button  
+                Grid.Column="0"
+                WidthRequest="450"
+                HeightRequest="230"
+                BackgroundColor="DodgerBlue"
+                BorderColor="Black"
+                BorderWidth="8"
+                CornerRadius="150"
+                Text="{localization:Translate FTLS}"
+                FontFamily="InriaSansRegular"  
+                FontSize="30"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Clicked="OnFluidTankLevelSensorClicked"/>
+            
+            <BoxView Grid.Column="1"
+              WidthRequest="400"
+              Color="Transparent" />        
+
+            <Image
+                Grid.Column="1"
+                Source="ftls.jpg"
+                WidthRequest="200"
+                HeightRequest="200"
+                HorizontalOptions="End"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" HorizontalOptions="Center">
+            <Button  
+                Grid.Column="0"
+                WidthRequest="450"
+                HeightRequest="230"
+                BackgroundColor="DodgerBlue"
+                BorderColor="Black"
+                BorderWidth="8"
+                CornerRadius="150"
+                Text="{localization:Translate KZV}"
+                FontFamily="InriaSansRegular"  
+                FontSize="30"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Clicked="OnKZValveClicked"/>
+
+            <BoxView Grid.Column="1"
+              WidthRequest="400"
+              Color="Transparent" />
+
+            <Image
+                Grid.Column="1"
+                Source="ftls.jpg"
+                WidthRequest="200"
+                HeightRequest="200"
+                HorizontalOptions="End"
+                VerticalOptions="Center" />
+        </Grid>
+
+        <BoxView HeightRequest="75" Color="Transparent" />
+
+    </StackLayout>  
+</ContentPage>      
