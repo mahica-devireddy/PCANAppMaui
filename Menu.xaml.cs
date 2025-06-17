@@ -1,12 +1,7 @@
 using System;
-using System.Collections.Generic;
-using System.Timers;
-using Microsoft.Maui.Controls;
-using Timer = System.Timers.Timer;
-using System.Threading.Tasks;
-using LocalizationResourceManager.Maui;
 using System.Globalization;
-using PCANAppM.Resources.Languages;
+using LocalizationResourceManager.Maui;
+using Microsoft.Maui.Controls;
 
 namespace PCANAppM;
 
@@ -15,8 +10,7 @@ public partial class Menu : ContentPage
     private readonly ILocalizationResourceManager _localizationResourceManager;
 
     public Menu(ILocalizationResourceManager localizationResourceManager)
-	{
-        base.OnAppearing();
+    {
         InitializeComponent();
         _localizationResourceManager = localizationResourceManager;
     }
@@ -24,12 +18,11 @@ public partial class Menu : ContentPage
     protected override void OnAppearing()
     {
         base.OnAppearing();
-       
     }
 
-    private void OnLanguageButtonClicked(object sender, ToggledEventArgs e)
+    private void OnLanguageButtonClicked(object sender, EventArgs e)
     {
-        LanguageState.CurrentLanguage = e.Value ? "es" : "en";
+        LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
         _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
     }
 
