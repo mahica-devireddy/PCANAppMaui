@@ -1,105 +1,80 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
-             xmlns:local="clr-namespace:PCANAppM.Resources.Languages"  
              xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"
              x:Class="PCANAppM.Menu" 
              BackgroundColor="Black">  
-    <StackLayout>
+    <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*,Auto" Padding="20">
 
-        <BoxView HeightRequest="10" Color="Transparent" />
-
-        <!-- First row: Button + Image -->
-        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" HorizontalOptions="Center">
-            <Button  
-                Grid.Column="0"
-                WidthRequest="450"
-                HeightRequest="230"
-                BackgroundColor="DodgerBlue"
-                BorderColor="Black"
-                BorderWidth="8"
-                CornerRadius="150"
-                FontFamily="InriaSansRegular"  
-                Text="{localization:Translate BAS}"
-                FontSize="30"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Clicked="OnBoomAngleSensorClicked"/>
-
-            <BoxView Grid.Column="1"
-              WidthRequest="400"
-              Color="Transparent" />    
-
-            <Image
-                Grid.Column="1"
-                Source="bas.jpg"
-                WidthRequest="300"
-                HeightRequest="200"
-                HorizontalOptions="End"
-                VerticalOptions="Center" />
+        <!-- HEADER -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnDefinitions="Auto,*,Auto">
+            <Image Source="oshkosh_logo.png"
+                   HeightRequest="40"
+                   VerticalOptions="Center" />
+            <ImageButton Grid.Column="2"
+                         Source="language_icon.png"
+                         HeightRequest="32"
+                         WidthRequest="32"
+                         BackgroundColor="Transparent"
+                         Clicked="OnLanguageButtonClicked"
+                         HorizontalOptions="End"
+                         VerticalOptions="Center" />
         </Grid>
 
-        <BoxView HeightRequest="0" Color="Transparent" />
+        <!-- TITLE + BUTTONS + IMAGES -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="20">
 
-        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" HorizontalOptions="Center">
-            <Button  
-                Grid.Column="0"
-                WidthRequest="450"
-                HeightRequest="230"
-                BackgroundColor="DodgerBlue"
-                BorderColor="Black"
-                BorderWidth="8"
-                CornerRadius="150"
-                Text="{localization:Translate FTLS}"
-                FontFamily="InriaSansRegular"  
-                FontSize="30"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Clicked="OnFluidTankLevelSensorClicked"/>
-            
-            <BoxView Grid.Column="1"
-              WidthRequest="400"
-              Color="Transparent" />        
+            <!-- Left Side -->
+            <VerticalStackLayout Spacing="24" VerticalOptions="Center">
+                <Label Text="Connect PCAN Device To..."
+                       FontSize="32"
+                       FontAttributes="Bold"
+                       TextColor="White"
+                       FontFamily="InriaSansRegular"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,20,0,20" />
 
-            <Image
-                Grid.Column="1"
-                Source="ftls.jpg"
-                WidthRequest="200"
-                HeightRequest="200"
-                HorizontalOptions="End"
-                VerticalOptions="Center" />
+                <Button Text="Angle Sensor&#10;629-56345-004"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        BackgroundColor="Transparent"
+                        BorderColor="White"
+                        BorderWidth="2"
+                        CornerRadius="30"
+                        HeightRequest="60"
+                        Clicked="OnBoomAngleSensorClicked" />
+
+                <Button Text="KZ Valve&#10;630-3056"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        BackgroundColor="Transparent"
+                        BorderColor="White"
+                        BorderWidth="2"
+                        CornerRadius="30"
+                        HeightRequest="60"
+                        Clicked="OnKZValveClicked" />
+
+                <Button Text="Level Sensor&#10;631-4287-02X"
+                        TextColor="White"
+                        FontAttributes="Bold"
+                        FontSize="18"
+                        BackgroundColor="Transparent"
+                        BorderColor="White"
+                        BorderWidth="2"
+                        CornerRadius="30"
+                        HeightRequest="60"
+                        Clicked="OnFluidTankLevelSensorClicked" />
+            </VerticalStackLayout>
+
+            <!-- Right Side Images -->
+            <VerticalStackLayout Grid.Column="1" Spacing="12" VerticalOptions="Center">
+                <Image Source="sensor1.png" HeightRequest="80" Aspect="AspectFit" />
+                <Image Source="sensor2.png" HeightRequest="80" Aspect="AspectFit" />
+                <Image Source="sensor3.png" HeightRequest="80" Aspect="AspectFit" />
+            </VerticalStackLayout>
         </Grid>
 
-        <Grid ColumnDefinitions="*,Auto" VerticalOptions="Center" HorizontalOptions="Center">
-            <Button  
-                Grid.Column="0"
-                WidthRequest="450"
-                HeightRequest="230"
-                BackgroundColor="DodgerBlue"
-                BorderColor="Black"
-                BorderWidth="8"
-                CornerRadius="150"
-                Text="{localization:Translate KZV}"
-                FontFamily="InriaSansRegular"  
-                FontSize="30"
-                HorizontalOptions="Center"
-                VerticalOptions="Center"
-                Clicked="OnKZValveClicked"/>
-
-            <BoxView Grid.Column="1"
-              WidthRequest="400"
-              Color="Transparent" />
-
-            <Image
-                Grid.Column="1"
-                Source="ftls.jpg"
-                WidthRequest="200"
-                HeightRequest="200"
-                HorizontalOptions="End"
-                VerticalOptions="Center" />
-        </Grid>
-
-        <BoxView HeightRequest="75" Color="Transparent" />
-
-    </StackLayout>  
-</ContentPage>      
+    </Grid>
+</ContentPage>
