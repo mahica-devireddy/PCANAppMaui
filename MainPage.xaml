@@ -1,61 +1,81 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
-             xmlns:local="clr-namespace:PCANAppM.Resources.Languages"  
-             xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"
-             x:Class="PCANAppM.MainPage"             
-             BackgroundColor="Black">
+<ContentPage
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"
+    x:Class="PCANAppM.MainPage"
+    BackgroundColor="Black"
+    Title="PCAN Status">
 
-    <StackLayout>
+  <!-- Layout grid: 
+       Row 0 = header (logo + language button)
+       Row 1 = middle (device image + status text + status icon)
+       Row 2 = footer (“Next” button) -->
+  <Grid RowDefinitions="Auto,*,Auto"
+        ColumnDefinitions="*">
 
-        <BoxView HeightRequest="30" Color="transparent" />
+    <!-- HEADER -->
+    <Grid Grid.Row="0"
+          Padding="20"
+          ColumnDefinitions="Auto,*,Auto">
+      <!-- Oshkosh logo -->
+      <Image Source="oshkosh_logo.png"
+             HeightRequest="40"
+             VerticalOptions="Center" />
 
-        <ImageButton
-            Source="language_icon.png"
-            HeightRequest="65"
-            WidthRequest="90"
-            Margin="-1300, 0, 0, 0"
-            BackgroundColor="Transparent"
-            Clicked="OnLanguageButtonClicked"
-             />
+      <!-- spacer column automatically fills -->
 
-        <Image  
-            Source="blackpcan.png"  
-            HeightRequest="500"  
-            Aspect="AspectFit"  
-            HorizontalOptions="Center"   
-            VerticalOptions="Center"  
-            />  
+      <!-- Language toggle -->
+      <ImageButton Grid.Column="2"
+                   Source="language_icon.png"
+                   HeightRequest="32"
+                   WidthRequest="32"
+                   BackgroundColor="Transparent"
+                   Clicked="OnLanguageButtonClicked"
+                   VerticalOptions="Center" />
+    </Grid>
 
-        <Label x:Name="StatusLabel"    
-           Text="{localization:Translate Initializing}"    
-           HorizontalOptions="Center"    
-           VerticalOptions="Center"  
-           FontSize="50"  
-           FontAttributes="Bold"  
-           TextColor="WhiteSmoke"  
-           FontFamily="RobotoRegular"  
-           />  
+    <!-- MIDDLE -->
+    <VerticalStackLayout
+        Grid.Row="1"
+        HorizontalOptions="Center"
+        VerticalOptions="Center"
+        Spacing="24">
 
-        <BoxView HeightRequest="30" Color="transparent" />  
+      <!-- PCAN device picture -->
+      <Image Source="blackpcan.png"
+             Aspect="AspectFit"
+             HeightRequest="280"
+             WidthRequest="Auto" />
 
-        <Image  
-            x:Name="StatusImage1"  
-            Source="green_check.png"  
-            HeightRequest="100"  
-            Aspect="AspectFit"  
-            HorizontalOptions="Center"  
-            VerticalOptions="Center" />  
+      <!-- Status text (bound/updated in code-behind) -->
+      <Label x:Name="StatusLabel"
+             Text="{localization:Translate Initializing}"
+             FontSize="32"
+             FontAttributes="Bold"
+             TextColor="WhiteSmoke"
+             HorizontalTextAlignment="Center" />
 
-        <Button  
-            Text="{localization:Translate NextButton}"  
-            BackgroundColor="Black"  
-            FontSize="Medium"  
-            FontFamily="InriaSansRegular"  
-            WidthRequest="120"    
-            Margin="1230,-40,0,0"  
-            Clicked="OnNextButtonClicked" />  
+      <!-- Status icon (green_check.png or red_ex.png) -->
+      <Image x:Name="StatusImage1"
+             HeightRequest="80"
+             Aspect="AspectFit"
+             HorizontalOptions="Center" />
+    </VerticalStackLayout>
 
-    </StackLayout>  
+    <!-- FOOTER -->
+    <Grid Grid.Row="2"
+          Padding="20">
+      <Button Text="{localization:Translate NextButton}"
+              Clicked="OnNextButtonClicked"
+              FontSize="18"
+              FontAttributes="Bold"
+              BackgroundColor="WhiteSmoke"
+              TextColor="Black"
+              HorizontalOptions="Center"
+              WidthRequest="140"
+              HeightRequest="48" />
+    </Grid>
 
+  </Grid>
 </ContentPage>
