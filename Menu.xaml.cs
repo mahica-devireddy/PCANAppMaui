@@ -1,7 +1,16 @@
 using System;
-using System.Globalization;
-using LocalizationResourceManager.Maui;
+using System.Collections.Generic;
+using System.Timers;
 using Microsoft.Maui.Controls;
+using Timer = System.Timers.Timer;
+using System.Threading.Tasks;
+using LocalizationResourceManager.Maui;
+using System.Globalization;
+using PCANAppM.Resources.Languages;
+
+#if WINDOWS
+using PCANAppM.Platforms.Windows;
+#endif
 
 namespace PCANAppM;
 
