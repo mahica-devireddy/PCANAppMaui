@@ -27,14 +27,14 @@
                  WidthRequest="75"  
                  BackgroundColor="Transparent"  
                  Clicked="OnLanguageButtonClicked"  
-                 VerticalOptions="Center" />  
-        </Grid>  
+                 VerticalOptions="Center" />
+        </Grid>
 
-        <!-- TITLE + BUTTONS + IMAGES -->  
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="20">  
+        <!-- TITLE + BUTTONS + IMAGES -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="20">
 
-            <!-- Left Side -->  
-            <VerticalStackLayout Spacing="70" VerticalOptions="Center">  
+            <!-- Left Side -->
+            <VerticalStackLayout Spacing="30" VerticalOptions="Center">
                 <Label Grid.Row="1"  
                        Grid.ColumnSpan="2"  
                        Text="Connect PCAN Device To..."  
@@ -43,10 +43,10 @@
                        FontFamily="BarlowRegular"  
                        TextColor="White"  
                        HorizontalTextAlignment="Center"  
-                       Margin="0,0,0,0" />  
+                       Margin="0,0,0,0" />
 
-                <HorizontalStackLayout HorizontalOptions="Start" Spacing="20" Margin="100,0,0,0">
-                    <Image Source="angle_sensor.png" HeightRequest="60" WidthRequest="60" VerticalOptions="Center" />
+                <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
+                    <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
                     <Button Text="{localization:Translate BAS}"  
                             FontFamily="BarlowRegular"  
                             TextColor="White"  
@@ -61,8 +61,8 @@
                             Clicked="OnBoomAngleSensorClicked" />
                 </HorizontalStackLayout>
 
-                <HorizontalStackLayout HorizontalOptions="Start" Spacing="20" Margin="100,0,0,0">
-                    <Image Source="angle_sensor.png" HeightRequest="60" WidthRequest="60" VerticalOptions="Center" />
+                <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
+                    <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
                     <Button Text="{localization:Translate KZV}"   
                             TextColor="White"  
                             FontAttributes="Bold"  
@@ -77,8 +77,8 @@
                             Clicked="OnKZValveClicked" />
                 </HorizontalStackLayout>
 
-                <HorizontalStackLayout HorizontalOptions="Start" Spacing="20" Margin="100,0,0,0">
-                    <Image Source="angle_sensor.png" HeightRequest="60" WidthRequest="60" VerticalOptions="Center" />
+                <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
+                    <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
                     <Button Text="{localization:Translate FTLS}" 
                             TextColor="White"  
                             FontAttributes="Bold"
@@ -90,10 +90,10 @@
                             CornerRadius="50"  
                             HeightRequest="100"  
                             WidthRequest="600"
-                            Clicked="OnFluidTankLevelSensorClicked" />  
+                            Clicked="OnFluidTankLevelSensorClicked" />
                 </HorizontalStackLayout>
-            </VerticalStackLayout> 
-        </Grid>  
+            </VerticalStackLayout>
+        </Grid>
 
-    </Grid>  
+    </Grid>
 </ContentPage>
