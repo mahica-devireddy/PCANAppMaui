@@ -1,4 +1,3 @@
-<!-- BAS.xaml -->
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
@@ -61,10 +60,7 @@
             </CollectionView>
 
             <!-- Update CAN ID Sequence -->
-            <Button x:Name="UpdateCanIdButton"
-                    Text="Update CAN ID"
-                    Clicked="OnUpdateCanIdButtonClicked"
-                    HorizontalOptions="Center" />
+            
             <Entry x:Name="NewCanIdEntry"
                    Placeholder="New ID (hex)"
                    IsVisible="False"
