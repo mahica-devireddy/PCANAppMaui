@@ -21,10 +21,11 @@
         <Grid Grid.Row="1" VerticalOptions="Center" HorizontalOptions="CenterAndExpand">
             <!-- Initial View -->
             <StackLayout x:Name="InitialKzvView" IsVisible="True" Spacing="20" VerticalOptions="Center">
-                <Image Source="angle_sensor.png" HeightRequest="350" HorizontalOptions="Center" Margin="0,-50,0,0"/>
+                <Image Source="angle_sensor.png" HeightRequest="350" HorizontalOptions="Center" Margin="0,-20,0,0"/>
                 <Label x:Name="LatestCanIdLabel" Text="Current CAN ID of the KZ Valve: "
                        TextColor="White" FontSize="40" FontFamily="BarlowRegular"
                        HorizontalTextAlignment="Center" FontAttributes="Bold" />
+                <Rectangle/>
                 <Button Text="Set CAN ID" Clicked="OnSetCanIdClicked"
                         FontSize="35" FontFamily="BarlowRegular"
                         HorizontalOptions="Center" BackgroundColor="White"
@@ -35,7 +36,7 @@
             <!-- Set CAN ID Dialog -->
             <Frame x:Name="SetCanIdView" BackgroundColor="Black" Padding="0" CornerRadius="10"
                    WidthRequest="1000" HeightRequest="400" HasShadow="False"
-                   BorderColor="Transparent" IsVisible="False"> 
+                   BorderColor="Transparent" IsVisible="False">
                 <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto"
                       BackgroundColor="LightGray">
                     <StackLayout Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
