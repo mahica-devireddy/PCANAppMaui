@@ -125,12 +125,11 @@ public partial class KZV : ContentPage
         InitialKzvView.IsVisible = true;
     }
 
-    private void OnExitClicked(object sender, EventArgs e) 
+    private void OnExitClicked(object sender, EventArgs e)
     {
-        ConfirmCanIdView.IsVisible = false;
-
+        SetCanIdView.IsVisible = false;
+        InitialKzvView.IsVisible = true;
     }
-
 #endif
 
     private void UpdateLatestCanIdLabel(string id)
