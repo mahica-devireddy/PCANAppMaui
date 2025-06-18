@@ -8,16 +8,6 @@
     x:Class="PCANAppM.Menu" 
     BackgroundColor="Black">
 
-    <ContentPage.Resources>
-        <Style TargetType="Button">
-            <Style.Triggers>
-                <Trigger TargetType="Button" Property="IsMouseOver" Value="True">
-                    <Setter Property="Scale" Value="1.1" />
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </ContentPage.Resources>
-
     <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,Auto" Padding="20">
 
         <!-- HEADER -->
@@ -68,7 +58,8 @@
                             CornerRadius="50"  
                             HeightRequest="100"  
                             WidthRequest="600"
-                            Clicked="OnBoomAngleSensorClicked" />
+                            Clicked="OnBoomAngleSensorClicked"
+                            />
                 </HorizontalStackLayout>
 
                 <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
@@ -84,7 +75,8 @@
                             CornerRadius="50"  
                             HeightRequest="100" 
                             WidthRequest="600"
-                            Clicked="OnKZValveClicked" />
+                            Clicked="OnKZValveClicked"
+                            />
                 </HorizontalStackLayout>
 
                 <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
@@ -100,7 +92,8 @@
                             CornerRadius="50"  
                             HeightRequest="100"  
                             WidthRequest="600"
-                            Clicked="OnFluidTankLevelSensorClicked" />
+                            Clicked="OnFluidTankLevelSensorClicked"
+                            />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
         </Grid>
