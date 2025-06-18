@@ -8,6 +8,16 @@
     x:Class="PCANAppM.Menu" 
     BackgroundColor="Black">
 
+    <ContentPage.Resources>
+        <Style TargetType="Button">
+            <Style.Triggers>
+                <Trigger TargetType="Button" Property="IsMouseOver" Value="True">
+                    <Setter Property="Scale" Value="1.1" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </ContentPage.Resources>
+
     <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,Auto" Padding="20">
 
         <!-- HEADER -->
@@ -16,18 +26,18 @@
             ColumnDefinitions="Auto,*,Auto">
             <!-- Oshkosh logo -->
             <Image Source="oshkosh_logo.png"  
-           HeightRequest="65"  
-           WidthRequest="180"  
-           VerticalOptions="Center" />
+                   HeightRequest="65"  
+                   WidthRequest="180"  
+                   VerticalOptions="Center" />
 
             <!-- Language toggle -->
             <ImageButton Grid.Column="2"  
-                 Source="language_icon.png"  
-                 HeightRequest="65"  
-                 WidthRequest="75"  
-                 BackgroundColor="Transparent"  
-                 Clicked="OnLanguageButtonClicked"  
-                 VerticalOptions="Center" />
+                         Source="language_icon.png"  
+                         HeightRequest="65"  
+                         WidthRequest="75"  
+                         BackgroundColor="Transparent"  
+                         Clicked="OnLanguageButtonClicked"  
+                         VerticalOptions="Center" />
         </Grid>
 
         <!-- TITLE + BUTTONS + IMAGES -->
@@ -50,7 +60,6 @@
                     <Button Text="{localization:Translate BAS}"  
                             FontFamily="BarlowRegular"  
                             TextColor="White"  
-
                             FontAttributes="Bold"  
                             FontSize="28"  
                             BackgroundColor="Transparent"  
@@ -95,6 +104,5 @@
                 </HorizontalStackLayout>
             </VerticalStackLayout>
         </Grid>
-
     </Grid>
 </ContentPage>
