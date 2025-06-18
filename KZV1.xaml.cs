@@ -1,7 +1,6 @@
-using System;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using Peak.Can.Basic;
-using PCANAppM.Services;
 
 #if WINDOWS
 using PCANAppM.Platforms.Windows;
@@ -11,89 +10,110 @@ namespace PCANAppM;
 
 public partial class KZV : ContentPage
 {
+    private string? _currentCanId = null;
 #if WINDOWS
     private PCAN_USB? _pcanUsb;
-    private CanIdUpdateService? _canIdUpdater;
     private ushort _currentHandle;
     private bool _isStarted = false;
 #endif
 
-    private string? _currentCanId = null;
-
     public KZV()
     {
         InitializeComponent();
-        InitializeCAN();
+#if WINDOWS
+        var devices = PCAN_USB.GetUSBDevices();
+        if (devices.Count == 0)
+        {
+            DisplayAlert("Error", "No PCAN devices found.", "OK");
+            return;
+        }
+
+        string selectedDevice = devices[0];
+        string baudRate = "250 kbit/s";
+
+        _pcanUsb = new PCAN_USB();
+        SubscribeToPcanUsbEvents();
+
+        var handle = PCAN_USB.DecodePEAKHandle(selectedDevice);
+        var status = _pcanUsb.InitializeCAN(handle, baudRate, true);
+        if (status == TPCANStatus.PCAN_ERROR_OK)
+        {
+            _currentHandle = handle;
+            _isStarted = true;
+        }
+        else
+        {
+            DisplayAlert("Init Failed", _pcanUsb.PeakCANStatusErrorString(status), "OK");
+        }
+#endif
     }
 
 #if WINDOWS
-    private void InitializeCAN()
-    {
-        var devices = PCAN_USB.GetUSBDevices();
-        if (devices != null && devices.Count > 0)
-        {
-            var handle = PCAN_USB.DecodePEAKHandle(devices[0]);
-            var baud = "250 kbit/s";
-
-            _pcanUsb = new PCAN_USB();
-            SubscribeToPcanUsbEvents();
-
-            var status = _pcanUsb.InitializeCAN(handle, baud, true);
-            if (status == TPCANStatus.PCAN_ERROR_OK)
-            {
-                _currentHandle = handle;
-                _isStarted = true;
-
-                _canIdUpdater = new CanIdUpdateService(
-                    _pcanUsb,
-                    vm => Console.WriteLine($"[CAN] {vm.Id}: {vm.Data}")
-                );
-
-                _currentCanId = "--";
-                UpdateLatestCanIdLabel(_currentCanId);
-            }
-        }
-    }
-
     private void SubscribeToPcanUsbEvents()
     {
         if (_pcanUsb == null) return;
         _pcanUsb.MessageReceived += OnCanMessageReceived;
-        _pcanUsb.Feedback        += OnPcanFeedback;
+        _pcanUsb.Feedback += OnPcanFeedback;
     }
 
-    private void OnSetCanIdClicked(object sender, EventArgs e)
+    private void OnCanMessageReceived(PCAN_USB.Packet packet)
+    {
+        var idHex = $"0x{packet.Id:X}";
+        string lastTwo = idHex.Length >= 2 ? idHex.Substring(idHex.Length - 2) : idHex;
+        _currentCanId = lastTwo;
+
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            UpdateLatestCanIdLabel(lastTwo);
+        });
+    }
+
+    private void OnPcanFeedback(string message)
+    {
+        // Not shown in UI
+    }
+
+    private async void OnSetCanIdClicked(object sender, EventArgs e)
     {
         InitialKzvView.IsVisible = false;
         SetCanIdView.IsVisible = true;
-        ConfirmCanIdView.IsVisible = false;
     }
 
-    private void OnSetClicked(object sender, EventArgs e)
+    private async void OnSetClicked(object sender, EventArgs e)
     {
-        string? newId = NewCanIdEntry.Text?.Trim().ToUpperInvariant();
-
-        if (string.IsNullOrEmpty(newId) ||
-            !int.TryParse(newId, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
+        var newCanId = NewCanIdEntry.Text?.Trim();
+        if (string.IsNullOrEmpty(newCanId) || newCanId.Length > 2 || !int.TryParse(newCanId, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
         {
-            DisplayAlert("Invalid Input", "Please enter a valid hex CAN ID.", "OK");
+            await DisplayAlert("Invalid Input", "Please enter a valid 2-digit hex CAN ID.", "OK");
             return;
         }
 
+        ConfirmText.Text = $"Set The CAN ID to {newCanId.ToUpper()}";
         SetCanIdView.IsVisible = false;
-        ConfirmText.Text = $"Set The CAN ID to {newId}";
         ConfirmCanIdView.IsVisible = true;
+        _pendingNewCanId = newCanId.ToUpper();
     }
 
-    private void OnConfirmClicked(object sender, EventArgs e)
+    private async void OnConfirmClicked(object sender, EventArgs e)
     {
-        _currentCanId = NewCanIdEntry.Text?.Trim().ToUpperInvariant();
-        UpdateLatestCanIdLabel(_currentCanId);
+        if (string.IsNullOrEmpty(_pendingNewCanId)) return;
 
-#if WINDOWS
-        _canIdUpdater?.UpdateKzValveCanId("00", _currentCanId ?? "00");
-#endif
+        string currentId = _currentCanId ?? "00";
+        string newId = _pendingNewCanId.PadLeft(2, '0');
 
+        byte currentIdByte = byte.Parse(currentId, NumberStyles.HexNumber);
+        byte newIdByte = byte.Parse(newId, NumberStyles.HexNumber);
+
+        uint canId = (0x18EF0000u) | ((uint)currentIdByte << 8) | 0x01u;
+
+        byte[] data = new byte[8];
+        data[3] = 0x04;
+        data[4] = newIdByte;
+
+        var status = _pcanUsb?.WriteFrame(canId, 8, data, canId > 0x7FF);
+
+        _currentCanId = newId;
+        UpdateLatestCanIdLabel(newId);
         ConfirmCanIdView.IsVisible = false;
         InitialKzvView.IsVisible = true;
     }
@@ -103,56 +123,17 @@ public partial class KZV : ContentPage
         ConfirmCanIdView.IsVisible = false;
         InitialKzvView.IsVisible = true;
     }
+#endif
 
     private void UpdateLatestCanIdLabel(string id)
     {
         LatestCanIdLabel.Text = $"Current CAN ID: {id}";
-    }
-
-    private void OnCanMessageReceived(PCAN_USB.Packet packet)
-    {
-        var idHex = $"0x{packet.Id:X}";
-        var last2 = idHex.Substring(idHex.Length - 2);
-        _currentCanId = last2;
-
-        MainThread.BeginInvokeOnMainThread(() =>
-        {
-            UpdateLatestCanIdLabel(_currentCanId);
-        });
-    }
-
-    private void OnPcanFeedback(string message)
-    {
-        Console.WriteLine($"[PCAN Feedback] {message}");
-    }
-#endif
-}
-
-public class CanIdUpdateService
-{
-    private readonly PCAN_USB _pcanUsb;
-    private readonly Action<CanMessageViewModel> _logger;
-
-    public CanIdUpdateService(PCAN_USB pcanUsb, Action<CanMessageViewModel> logger)
-    {
-        _pcanUsb = pcanUsb;
-        _logger = logger;
-    }
-
-    public void UpdateKzValveCanId(string oldId, string newId)
-    {
-        _logger(new CanMessageViewModel
-        {
-            Direction = "Info",
-            Id = $"0x{oldId}",
-            Data = $"CAN ID changed to 0x{newId}"
-        });
     }
 }
 
 public class CanMessageViewModel
 {
     public string Direction { get; set; } = "";
-    public string Id        { get; set; } = "";
-    public string Data      { get; set; } = "";
+    public string Id { get; set; } = "";
+    public string Data { get; set; } = "";
 }
