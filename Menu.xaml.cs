@@ -49,4 +49,19 @@ public partial class Menu : ContentPage
     {
         await Navigation.PushAsync(new KZV());
     }
+
+    private void OnPointerEntered(object sender, EventArgs e) 
+    {
+        if (sender is VisualElement element)
+        {
+            element.ScaleTo(1.1, 100); 
+        }
+    }
+    private void OnPointerExited(object sender, EventArgs e)
+    {
+        if (sender is VisualElement element)
+        {
+            element.ScaleTo(1.0, 100);
+        }
+    }
 }
