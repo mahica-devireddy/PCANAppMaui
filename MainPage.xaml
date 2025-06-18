@@ -53,7 +53,8 @@
             <Label x:Name="StatusLabel"  
                    Text="{localization:Translate Initializing}"  
                    FontSize="50"  
-                   FontAttributes="Bold"  
+                   FontAttributes="Bold"
+                   FontFamily="BarlowRegular"
                    TextColor="WhiteSmoke"  
                    HorizontalTextAlignment="Center" />
 
