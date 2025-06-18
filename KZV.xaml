@@ -1,65 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="PCANAppM.KZV"
              BackgroundColor="Black">
+    <Grid Padding="30" RowSpacing="20">
 
-    <Grid Padding="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Top bar -->
-        <Grid Grid.Row="0" ColumnSpacing="0">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Logo -->
-            <Image Source="oshkosh_logo.png"
-                   HeightRequest="30"
-                   HorizontalOptions="Start"
-                   VerticalOptions="Center" />
-
-            <!-- Globe Icon -->
-            <Image Source="globe_icon.png"
-                   HeightRequest="30"
-                   HorizontalOptions="End"
-                   VerticalOptions="Center"
-                   Grid.Column="1"/>
-        </Grid>
-
-        <!-- Image of the part -->
-        <Image Source="valve_image.png"
-               Grid.Row="1"
-               HorizontalOptions="Center"
-               VerticalOptions="Center"
-               Aspect="AspectFit"
-               HeightRequest="150"/>
-
-        <!-- Text and Button -->
-        <VerticalStackLayout Grid.Row="2"
-                             Spacing="10"
-                             HorizontalOptions="Center"
-                             VerticalOptions="Center">
-            <Label x:Name="CurrentCanIdLabel"
-                   Text="Current CAN ID: 192"
-                   FontSize="22"
+        <!-- Initial View -->
+        <StackLayout x:Name="InitialKzvView" IsVisible="True" Spacing="20" VerticalOptions="Center">
+            <Image Source="kzv_main.png" HeightRequest="200" HorizontalOptions="Center" />
+            <Label x:Name="LatestCanIdLabel" 
+                   Text="Current CAN ID: --"
                    TextColor="White"
-                   FontAttributes="Bold"
-                   HorizontalTextAlignment="Center"/>
-            
+                   FontSize="28"
+                   HorizontalTextAlignment="Center"
+                   FontAttributes="Bold" />
             <Button Text="Set CAN ID"
-                    x:Name="SetCanIdButton"
                     Clicked="OnSetCanIdClicked"
+                    HorizontalOptions="Center"
                     BackgroundColor="White"
                     TextColor="Black"
-                    CornerRadius="30"
-                    Padding="15,5"
-                    FontSize="18"
-                    HorizontalOptions="Center"/>
-        </VerticalStackLayout>
+                    WidthRequest="200"
+                    CornerRadius="30" />
+        </StackLayout>
+
+        <!-- Set CAN ID View -->
+        <StackLayout x:Name="SetCanIdView" IsVisible="False" Spacing="15" VerticalOptions="Center">
+            <Frame BackgroundColor="White" Padding="20" CornerRadius="10">
+                <StackLayout>
+                    <Label Text="Set CAN ID"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="Black"
+                           HorizontalTextAlignment="Center" />
+                    <Label Text="Enter the new CAN ID and Press Set"
+                           FontSize="16"
+                           TextColor="Black"
+                           HorizontalTextAlignment="Center"
+                           Margin="0,10,0,10" />
+                    <Entry x:Name="NewCanIdEntry"
+                           Placeholder="Enter New CAN ID"
+                           BackgroundColor="#EEE"
+                           TextColor="Black"
+                           WidthRequest="200"
+                           HorizontalOptions="Center" />
+                    <Button Text="Set"
+                            Clicked="OnSetClicked"
+                            BackgroundColor="Black"
+                            TextColor="White"
+                            HorizontalOptions="Center"
+                            WidthRequest="100"
+                            CornerRadius="25"
+                            Margin="0,10,0,0" />
+                </StackLayout>
+            </Frame>
+        </StackLayout>
+
+        <!-- Confirm CAN ID View -->
+        <StackLayout x:Name="ConfirmCanIdView" IsVisible="False" Spacing="15" VerticalOptions="Center">
+            <Frame BackgroundColor="White" Padding="20" CornerRadius="10">
+                <StackLayout>
+                    <Label x:Name="ConfirmText"
+                           Text="Set The CAN ID to XX"
+                           FontSize="24"
+                           FontAttributes="Bold"
+                           TextColor="Black"
+                           HorizontalTextAlignment="Center"
+                           Margin="0,0,0,10" />
+                    <Button Text="Confirm"
+                            Clicked="OnConfirmClicked"
+                            BackgroundColor="Black"
+                            TextColor="White"
+                            HorizontalOptions="Center"
+                            WidthRequest="120"
+                            CornerRadius="25" />
+                    <Button Text="Cancel"
+                            Clicked="OnCancelConfirmClicked"
+                            BackgroundColor="Gray"
+                            TextColor="White"
+                            HorizontalOptions="Center"
+                            WidthRequest="120"
+                            CornerRadius="25"
+                            Margin="0,10,0,0" />
+                </StackLayout>
+            </Frame>
+        </StackLayout>
+
     </Grid>
 </ContentPage>
