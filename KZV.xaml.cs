@@ -136,6 +136,11 @@ public partial class KZV : ContentPage
     {
         LatestCanIdLabel.Text = $"Current CAN ID of the KZ Valve: {id}";
     }
+
+    private void NewCanIdEntry_Focused(object sender, FocusEventArgs e)
+    {
+
+    }
 }
 
 public class CanMessageViewModel1
