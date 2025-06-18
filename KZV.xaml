@@ -51,54 +51,77 @@
             </StackLayout>
 
             <!-- Set CAN ID View -->
-            <!-- Set CAN ID View -->
-<Frame BackgroundColor="White" 
-       Padding="0" 
-       CornerRadius="10" 
-       WidthRequest="1000" 
-       HeightRequest="400" 
+            <Frame BackgroundColor="Black"  <!-- outer black border -->
+       Padding="0"
+       CornerRadius="10"
+       WidthRequest="1000"
+       HeightRequest="400"
+       HasShadow="False"
        BorderColor="Black">
-    <Grid RowDefinitions="Auto,50,*" ColumnDefinitions="*">
-        <Label Text="Set CAN ID"
+
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*"
+          BackgroundColor="LightGray"> <!-- grey interior background -->
+
+        <!-- White header section with text -->
+        <StackLayout Grid.Row="0"
+                     BackgroundColor="White"
+                     Padding="40,30"
+                     Spacing="10">
+            <Label Text="Set CAN ID"
                    FontFamily="BarlowRegular"
                    FontSize="50"
                    FontAttributes="Bold"
                    TextColor="Black"
                    HorizontalTextAlignment="Start" />
-        <Label Text="Enter the new CAN ID and Press Set"
+            <Label Text="Enter the new CAN ID and Press Set"
                    FontFamily="BarlowRegular"
-                   FontSize="50"
+                   FontSize="30"
                    TextColor="Black"
-                   HorizontalTextAlignment="Start"/>
-        <Entry x:Name="NewCanIdEntry"
-                   Grid.Row="0"
-                   FontFamily="BarlowRegular"
+                   HorizontalTextAlignment="Start" />
+        </StackLayout>
+
+        <!-- Black bar separator -->
+        <BoxView Grid.Row="1"
+                 HeightRequest="8"
+                 BackgroundColor="Black"
+                 HorizontalOptions="FillAndExpand" />
+
+        <!-- Entry box area -->
+        <StackLayout Grid.Row="2"
+                     VerticalOptions="Center"
+                     HorizontalOptions="Center"
+                     Spacing="20"
+                     Margin="0,30,0,0">
+            <Entry x:Name="NewCanIdEntry"
                    Placeholder="Enter New CAN ID"
-                   BackgroundColor="#EEE"
-                   TextColor="Black"
-                   WidthRequest="200"
+                   BackgroundColor="White"
+                   TextColor="Gray"
+                   FontSize="24"
+                   FontFamily="BarlowRegular"
+                   WidthRequest="400"
                    HorizontalOptions="Center" />
-        <BoxView  
-            Grid.Row="1" 
-            HeightRequest="20" 
-            BackgroundColor="Black" 
-            WidthRequest="1000"
-            Margin="0,50,0,0"/>
-        <BoxView Grid.Row="2" BackgroundColor="Blue" HeightRequest="20" WidthRequest="50"/>
-        <Button Text="Set"
+        </StackLayout>
+
+        <!-- Set button -->
+        <StackLayout Grid.Row="3"
+                     VerticalOptions="Start"
+                     HorizontalOptions="Center"
+                     Margin="0,20,0,0">
+            <Button Text="Set"
                     FontFamily="BarlowRegular"
                     Clicked="OnSetClicked"
                     BackgroundColor="Black"
                     TextColor="White"
                     FontSize="35"
-                    HorizontalOptions="Center"
                     WidthRequest="200"
                     HeightRequest="60"
-                    CornerRadius="25"
-                    Margin="0,10,0,0" />
-        
+                    CornerRadius="30"
+                    HorizontalOptions="Center" />
+        </StackLayout>
+
     </Grid>
 </Frame>
+
 
             <!-- Confirm CAN ID View -->
             <StackLayout x:Name="ConfirmCanIdView" IsVisible="False" Spacing="15" VerticalOptions="Center">
