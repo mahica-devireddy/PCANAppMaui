@@ -55,7 +55,7 @@ namespace PCANAppM
             string imageSource;
             if (devices != null && devices.Count > 0)
             {
-                status = devices[0] + " " + _localizationResourceManager["Status2"];
+                status = devices[0] + "  " + _localizationResourceManager["Status2"];
                 imageSource = "green_check.png";
                 isDeviceConnected = true;
             }
