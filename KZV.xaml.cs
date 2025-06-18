@@ -129,6 +129,7 @@ public partial class KZV : ContentPage
     {
         SetCanIdView.IsVisible = false;
         InitialKzvView.IsVisible = true;
+        ConfirmCanIdView.IsVisible = false;
     }
 #endif
 
@@ -143,7 +144,7 @@ public partial class KZV : ContentPage
     }
 }
 
-public class CanMessageViewModel1
+public class CanMessageViewModel
 {
     public string Direction { get; set; } = "";
     public string Id { get; set; } = "";
