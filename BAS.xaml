@@ -1,81 +1,125 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="PCANAppM.BAS"
-             Title="BAS Configuration">
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="15">
-            <!-- Device and Baud Rate Selection -->
-            <Picker x:Name="DevicePicker"
-                    Title="Select CAN Device"
-                    TextColor="Black" />
-            <Picker x:Name="BaudRatePicker"
-                    Title="Baud Rate"
-                    TextColor="Black" />
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
+    xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"  
+    xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui"  
+    shell:Shell.NavBarIsVisible="False"  
+    x:Class="PCANAppM.BAS" 
+    BackgroundColor="Black">
 
-            <!-- Start / Stop CAN -->
-            <Button x:Name="StartStopButton"
-                    Text="Start"
-                    Clicked="OnStartStopClicked"
-                    TextColor="WhiteSmoke"
-                    BackgroundColor="Black" />
+    <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*" Padding="20">
 
-            <!-- Manual ID/Data Entry -->
-            <HorizontalStackLayout Spacing="10">
-                <Entry x:Name="CanIdEntry"
-                       Placeholder="ID (dec)"
-                       Keyboard="Numeric"
-                       TextChanged="OnCanIdEntryChanged"
-                       WidthRequest="100" />
-                <Entry x:Name="CanIdHexEntry"
-                       Placeholder="ID (hex)"
-                       Keyboard="Text"
-                       TextChanged="OnCanIdHexEntryChanged"
-                       WidthRequest="100" />
-            </HorizontalStackLayout>
-            <Entry x:Name="DataEntry"
-                   Placeholder="Data bytes (hex)" />
-            <Entry x:Name="LengthEntry"
-                   Placeholder="Length"
-                   Keyboard="Numeric" />
-            <Button x:Name="SendButton"
-                    Text="Send"
-                    Clicked="OnSendClicked"
-                    IsEnabled="False"
-                    TextColor="WhiteSmoke"
-                    BackgroundColor="Black" />
+        <!-- HEADER -->
+        <Grid Grid.Row="0" Padding="15" ColumnDefinitions="Auto,*,Auto">
+            <Image Source="oshkosh_logo.png" HeightRequest="65" WidthRequest="180" VerticalOptions="Center" />
+            <ImageButton Grid.Column="2" Source="language_icon.png" HeightRequest="65" WidthRequest="75"
+                         BackgroundColor="Transparent" VerticalOptions="Center" />
+        </Grid>
 
-            <!-- Received / Sent Messages -->
-            <Label Text="Received Messages:" TextColor="Black" />
-            <CollectionView x:Name="CanMessagesView" HeightRequest="200">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <HorizontalStackLayout Spacing="10">
-                            <Label Text="{Binding Direction}" WidthRequest="30" />
-                            <Label Text="{Binding Id}" WidthRequest="80" />
-                            <Label Text="{Binding Data}" />
-                        </HorizontalStackLayout>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+        <!-- MAIN CONTENT -->
+        <Grid Grid.Row="1" VerticalOptions="Center" HorizontalOptions="CenterAndExpand">
+            <!-- Initial View -->
+            <StackLayout x:Name="InitialBasView" IsVisible="True" Spacing="20" VerticalOptions="Center">
+                <Image Source="angle_sensor.png" HeightRequest="350" HorizontalOptions="Center" Margin="0,-20,0,0"/>
+                <Label x:Name="LatestCanIdLabel1" Text="Current CAN ID of the Angle Sensor: "
+                       TextColor="White" FontSize="40" FontFamily="BarlowRegular"
+                       HorizontalTextAlignment="Center" FontAttributes="Bold" />
 
-            <!-- Update CAN ID Sequence -->
-            
-            <Entry x:Name="NewCanIdEntry"
-                   Placeholder="New ID (hex)"
-                   IsVisible="False"
-                   HorizontalOptions="Center"
-                   WidthRequest="200" />
-            <Button x:Name="ConfirmCanIdButton"
-                    Text="Confirm"
-                    IsVisible="False"
-                    Clicked="OnConfirmCanIdButtonClicked"
-                    HorizontalOptions="Center" />
+                <Button Text="Set CAN ID" Clicked="OnSetCanIdClicked"
+                        FontSize="35" FontFamily="BarlowRegular"
+                        HorizontalOptions="Center" BackgroundColor="White"
+                        TextColor="Black" WidthRequest="250" HeightRequest="65"
+                        CornerRadius="30" />
+            </StackLayout>
 
-            <!-- Display latest CAN ID -->
-            <Label x:Name="LatestCanIdLabel"
-                   Text="Latest CAN ID: --"
-                   TextColor="Black" />
-        </VerticalStackLayout>
-    </ScrollView>
+            <!-- Set CAN ID Dialog -->
+            <Frame x:Name="SetCanIdView1" BackgroundColor="Black" Padding="0" CornerRadius="10"
+                   WidthRequest="1000" HeightRequest="400" HasShadow="False"
+                   BorderColor="Transparent" IsVisible="False">
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto"
+                      BackgroundColor="LightGray">
+                    <StackLayout Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
+                                 BackgroundColor="White" Padding="40,30" Spacing="10">
+                        <Label Text="Set CAN ID" FontFamily="BarlowRegular"
+                               FontSize="50" FontAttributes="Bold" TextColor="Black" />
+                        <Label Text="Enter the new CAN ID and Press Set" FontFamily="BarlowRegular"
+                               FontSize="30" TextColor="Black" />
+                    </StackLayout>
+
+                    <Button Grid.Row="0" Grid.Column="1" Text="✕" FontSize="30"
+                            TextColor="Black" BackgroundColor="Transparent"
+                            HorizontalOptions="End" VerticalOptions="Start"
+                            Clicked="OnExitClicked" Padding="0"
+                            WidthRequest="40" HeightRequest="40" />
+
+                    <BoxView Grid.Row="1" Grid.ColumnSpan="2" HeightRequest="10"
+                             BackgroundColor="Black" HorizontalOptions="Fill" />
+
+                    <StackLayout Grid.Row="2" Grid.ColumnSpan="2"
+                                 VerticalOptions="Center" HorizontalOptions="Center"
+                                 Spacing="20" Margin="0,45,0,0">
+                        <Entry x:Name="NewCanIdEntry1" Placeholder="Enter New CAN ID"
+                               BackgroundColor="White" TextColor="Gray" FontSize="24"
+                               FontFamily="BarlowRegular" WidthRequest="450" HeightRequest="60" />
+                    </StackLayout>
+
+                    <StackLayout Grid.Row="3" Grid.ColumnSpan="2"
+                                 VerticalOptions="Start" HorizontalOptions="Center"
+                                 Margin="0,20,0,0">
+                        <Button Text="Set" FontFamily="BarlowRegular" Clicked="OnSetClicked"
+                                BackgroundColor="Black" TextColor="White"
+                                FontSize="35" WidthRequest="200" HeightRequest="55"
+                                CornerRadius="30" />
+                    </StackLayout>
+                </Grid>
+            </Frame>
+
+            <!-- CONFIRM CAN ID DIALOG -->
+            <Grid x:Name="ConfirmCanIdView1" Grid.Row="1" VerticalOptions="Center" HorizontalOptions="Center" IsVisible="False">
+                <Frame BackgroundColor="Black"
+                   Padding="0"
+                   CornerRadius="10"
+                   WidthRequest="1000"
+                   HeightRequest="400"
+                   HasShadow="False"
+                   BorderColor="Transparent">
+                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*" BackgroundColor="LightGray">
+                        <!-- White Header Section -->
+                        <StackLayout Grid.Row="0" BackgroundColor="White" Padding="40,70" Spacing="10">
+                            <Label x:Name="ConfirmText1"
+                               Text="Set The CAN ID to 195"
+                               FontSize="80"
+                               FontAttributes="Bold"
+                               TextColor="Black"
+                               FontFamily="BarlowRegular"
+                               HorizontalTextAlignment="Center" />
+                        </StackLayout>
+                        <Button Grid.Row="0" Grid.Column="1" Text="✕" FontSize="30"
+                            TextColor="Black" BackgroundColor="Transparent"
+                            HorizontalOptions="End" VerticalOptions="Start"
+                            Clicked="OnExitClicked" Padding="0"
+                            WidthRequest="40" HeightRequest="40" />
+
+                        <!-- Black separator -->
+                        <BoxView Grid.Row="1" HeightRequest="10" BackgroundColor="Black" HorizontalOptions="Fill" />
+
+                        <!-- Confirm Button -->
+                        <StackLayout Grid.Row="2" VerticalOptions="Center" HorizontalOptions="Center" Margin="0,50,0,0">
+                            <Button Text="Confirm"
+                                FontFamily="BarlowRegular"
+                                BackgroundColor="Black"
+                                TextColor="White"
+                                FontSize="35"
+                                WidthRequest="200"
+                                HeightRequest="60"
+                                CornerRadius="30"
+                                HorizontalOptions="Center"
+                                Clicked="OnConfirmClicked" />
+                        </StackLayout>
+                    </Grid>
+                </Frame>
+            </Grid>
+        </Grid>
+    </Grid>
 </ContentPage>
