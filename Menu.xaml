@@ -5,95 +5,67 @@
     xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"  
     xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui"  
     shell:Shell.NavBarIsVisible="False"  
-    x:Class="PCANAppM.Menu" 
+    x:Class="PCANAppM.KZV" 
     BackgroundColor="Black">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,Auto" Padding="20">
+    <ContentPage.Resources>
+        <Style TargetType="Button">
+            <Style.Triggers>
+                <Trigger TargetType="Button" Property="IsMouseOver" Value="True">
+                    <Setter Property="Scale" Value="1.1" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*" Padding="20">
 
         <!-- HEADER -->
-        <Grid Grid.Row="0"  
-            Padding="15"  
-            ColumnDefinitions="Auto,*,Auto">
-            <!-- Oshkosh logo -->
-            <Image Source="oshkosh_logo.png"  
-           HeightRequest="65"  
-           WidthRequest="180"  
-           VerticalOptions="Center" />
-
-            <!-- Language toggle -->
-            <ImageButton Grid.Column="2"  
-                 Source="language_icon.png"  
-                 HeightRequest="65"  
-                 WidthRequest="75"  
-                 BackgroundColor="Transparent"  
-                 Clicked="OnLanguageButtonClicked"  
-                 VerticalOptions="Center" />
+        <Grid Grid.Row="0" Padding="15" ColumnDefinitions="Auto,*,Auto">
+            <Image Source="oshkosh_logo.png" HeightRequest="65" WidthRequest="180" VerticalOptions="Center" />
+            <ImageButton Grid.Column="2" Source="language_icon.png" HeightRequest="65" WidthRequest="75"
+                         BackgroundColor="Transparent" VerticalOptions="Center" />
         </Grid>
 
-        <!-- TITLE + BUTTONS + IMAGES -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="20">
+        <!-- CONFIRM CAN ID DIALOG -->
+        <Grid Grid.Row="1" VerticalOptions="Center" HorizontalOptions="Center">
+            <Frame BackgroundColor="Black"
+                   Padding="0"
+                   CornerRadius="10"
+                   WidthRequest="1000"
+                   HeightRequest="400"
+                   HasShadow="False"
+                   BorderColor="Transparent">
+                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*" BackgroundColor="LightGray">
+                    <!-- White Header Section -->
+                    <StackLayout Grid.Row="0" BackgroundColor="White" Padding="40,30" Spacing="10">
+                        <Label x:Name="ConfirmText"
+                               Text="Set The CAN ID to 195"
+                               FontSize="50"
+                               FontAttributes="Bold"
+                               TextColor="Black"
+                               FontFamily="BarlowRegular"
+                               HorizontalTextAlignment="Center" />
+                    </StackLayout>
 
-            <!-- Left Side -->
-            <VerticalStackLayout Spacing="30" VerticalOptions="Center">
-                <Label Grid.Row="1"  
-                       Grid.ColumnSpan="2"  
-                       Text="Connect PCAN Device To..."  
-                       FontSize="90"  
-                       FontAttributes="Bold"  
-                       FontFamily="BarlowRegular"  
-                       TextColor="White"  
-                       HorizontalTextAlignment="Center"  
-                       Margin="0,0,0,0" />
+                    <!-- Black separator -->
+                    <BoxView Grid.Row="1" HeightRequest="10" BackgroundColor="Black" HorizontalOptions="Fill" />
 
-                <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
-                    <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
-                    <Button Text="{localization:Translate BAS}"  
-                            FontFamily="BarlowRegular"  
-                            TextColor="White"  
-                            FontAttributes="Bold"  
-                            FontSize="28"  
-                            BackgroundColor="Transparent"  
-                            BorderColor="White"  
-                            BorderWidth="5"  
-                            CornerRadius="50"  
-                            HeightRequest="100"  
-                            WidthRequest="600"
-                            Clicked="OnBoomAngleSensorClicked" />
-                </HorizontalStackLayout>
-
-                <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
-                    <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
-                    <Button Text="{localization:Translate KZV}"   
-                            TextColor="White"  
-                            FontAttributes="Bold"  
-                            FontFamily="BarlowRegular"  
-                            FontSize="28"  
-                            BackgroundColor="Transparent"  
-                            BorderColor="White"  
-                            BorderWidth="5"  
-                            CornerRadius="50"  
-                            HeightRequest="100" 
-                            WidthRequest="600"
-                            Clicked="OnKZValveClicked" />
-                </HorizontalStackLayout>
-
-                <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
-                    <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
-                    <Button Text="{localization:Translate FTLS}" 
-                            TextColor="White"  
-                            FontAttributes="Bold"
-                            FontFamily="BarlowRegular"  
-                            FontSize="28"  
-                            BackgroundColor="Transparent"  
-                            BorderColor="White"  
-                            BorderWidth="5"  
-                            CornerRadius="50"  
-                            HeightRequest="100"  
-                            WidthRequest="600"
-                            Clicked="OnFluidTankLevelSensorClicked" />
-                </HorizontalStackLayout>
-            </VerticalStackLayout>
+                    <!-- Confirm Button -->
+                    <StackLayout Grid.Row="2" VerticalOptions="Center" HorizontalOptions="Center" Margin="0,20,0,0">
+                        <Button Text="Confirm"
+                                FontFamily="BarlowRegular"
+                                BackgroundColor="Black"
+                                TextColor="White"
+                                FontSize="35"
+                                WidthRequest="200"
+                                HeightRequest="55"
+                                CornerRadius="30"
+                                HorizontalOptions="Center"
+                                Clicked="OnConfirmClicked" />
+                    </StackLayout>
+                </Grid>
+            </Frame>
         </Grid>
-
     </Grid>
 </ContentPage>
