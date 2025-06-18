@@ -1,79 +1,65 @@
-<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              x:Class="PCANAppM.KZV"
-             Title="KZV Configuration">
-    <ScrollView>
-        <VerticalStackLayout Padding="20" Spacing="15">
+             BackgroundColor="Black">
 
-            <!-- Start / Stop CAN -->
-            <Button x:Name="StartStopButton1"
-                    Text="Start"
-                    Clicked="OnStartStopClicked"
-                    TextColor="WhiteSmoke"
-                    BackgroundColor="Black"
-                    HorizontalOptions="Center" />
+    <Grid Padding="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-            <!-- Manual ID/Data Entry -->
-            <HorizontalStackLayout Spacing="10">
-                <Entry x:Name="CanIdEntry1"
-                       Placeholder="ID (dec)"
-                       Keyboard="Numeric"
-                       TextChanged="OnCanIdEntryChanged"
-                       WidthRequest="100" />
-                <Entry x:Name="CanIdHexEntry1"
-                       Placeholder="ID (hex)"
-                       Keyboard="Text"
-                       TextChanged="OnCanIdHexEntryChanged"
-                       WidthRequest="100" />
-            </HorizontalStackLayout>
+        <!-- Top bar -->
+        <Grid Grid.Row="0" ColumnSpacing="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-            <Entry x:Name="DataEntry1"
-                   Placeholder="Data bytes (hex)" />
-            <Entry x:Name="LengthEntry1"
-                   Placeholder="Length"
-                   Keyboard="Numeric" />
+            <!-- Logo -->
+            <Image Source="oshkosh_logo.png"
+                   HeightRequest="30"
+                   HorizontalOptions="Start"
+                   VerticalOptions="Center" />
 
-            <Button x:Name="SendButton1"
-                    Text="Send"
-                    Clicked="OnSendClicked"
-                    IsEnabled="False"
-                    TextColor="WhiteSmoke"
-                    BackgroundColor="Black"
-                    HorizontalOptions="Center" />
+            <!-- Globe Icon -->
+            <Image Source="globe_icon.png"
+                   HeightRequest="30"
+                   HorizontalOptions="End"
+                   VerticalOptions="Center"
+                   Grid.Column="1"/>
+        </Grid>
 
-            <!-- Received / Sent Messages -->
-            <Label Text="Received Messages:" TextColor="Black" />
-            <CollectionView x:Name="CanMessagesView"
-                            HeightRequest="200">
-                <CollectionView.ItemTemplate>
-                    <DataTemplate>
-                        <HorizontalStackLayout Spacing="10">
-                            <Label Text="{Binding Direction}" WidthRequest="30" />
-                            <Label Text="{Binding Id}" WidthRequest="80" />
-                            <Label Text="{Binding Data}" />
-                        </HorizontalStackLayout>
-                    </DataTemplate>
-                </CollectionView.ItemTemplate>
-            </CollectionView>
+        <!-- Image of the part -->
+        <Image Source="valve_image.png"
+               Grid.Row="1"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               Aspect="AspectFit"
+               HeightRequest="150"/>
 
-            <!-- Update CAN ID Section -->
-            <Entry x:Name="NewCanIdEntry1"
-                   Placeholder="New ID (hex)"
-                   HorizontalOptions="Center"
-                   WidthRequest="200" />
-
-            <Button x:Name="UpdateCanIdButton1"
-                    Text="Update CAN ID"
-                    Clicked="OnConfirmCanIdButtonClicked"
-                    HorizontalOptions="Center" />
-
-            <!-- Display latest CAN ID -->
-            <Label x:Name="LatestCanIdLabel1"
-                   Text="Latest CAN ID: --"
-                   TextColor="Black"
-                   HorizontalOptions="Center" />
-
+        <!-- Text and Button -->
+        <VerticalStackLayout Grid.Row="2"
+                             Spacing="10"
+                             HorizontalOptions="Center"
+                             VerticalOptions="Center">
+            <Label x:Name="CurrentCanIdLabel"
+                   Text="Current CAN ID: 192"
+                   FontSize="22"
+                   TextColor="White"
+                   FontAttributes="Bold"
+                   HorizontalTextAlignment="Center"/>
+            
+            <Button Text="Set CAN ID"
+                    x:Name="SetCanIdButton"
+                    Clicked="OnSetCanIdClicked"
+                    BackgroundColor="White"
+                    TextColor="Black"
+                    CornerRadius="30"
+                    Padding="15,5"
+                    FontSize="18"
+                    HorizontalOptions="Center"/>
         </VerticalStackLayout>
-    </ScrollView>
+    </Grid>
 </ContentPage>
