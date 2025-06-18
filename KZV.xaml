@@ -1,13 +1,38 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="PCANAppM.KZV"
-             BackgroundColor="Black">
-    <Grid Padding="30" RowSpacing="20">
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
+    xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"  
+    xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui"  
+    shell:Shell.NavBarIsVisible="False"  
+    x:Class="PCANAppM.KZV" 
+    BackgroundColor="Black">
 
+    <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,Auto" Padding="20">
+
+        <!-- HEADER -->
+        <Grid Grid.Row="0"  
+            Padding="15"  
+            ColumnDefinitions="Auto,*,Auto">
+            <!-- Oshkosh logo -->
+            <Image Source="oshkosh_logo.png"  
+           HeightRequest="65"  
+           WidthRequest="180"  
+           VerticalOptions="Center" />
+
+            <!-- Language toggle -->
+            <ImageButton Grid.Column="2"  
+                 Source="language_icon.png"  
+                 HeightRequest="65"  
+                 WidthRequest="75"  
+                 BackgroundColor="Transparent"  
+                 
+                 VerticalOptions="Center" />
+        </Grid>
         <!-- Initial View -->
-        <StackLayout x:Name="InitialKzvView" IsVisible="True" Spacing="20" VerticalOptions="Center">
-            <Image Source="kzv_main.png" HeightRequest="200" HorizontalOptions="Center" />
+        <StackLayout x:Name="InitialKzvView" IsVisible="True" Spacing="10" VerticalOptions="Center">
+            <Rectangle HeightRequest="200" BackgroundColor="Transparent"/>
+            <Image Source="angle_sensor.png" HeightRequest="200" HorizontalOptions="Center" />
             <Label x:Name="LatestCanIdLabel" 
                    Text="Current CAN ID: --"
                    TextColor="White"
@@ -60,30 +85,29 @@
             <Frame BackgroundColor="White" Padding="20" CornerRadius="10">
                 <StackLayout>
                     <Label x:Name="ConfirmText"
-                           Text="Set The CAN ID to XX"
-                           FontSize="24"
-                           FontAttributes="Bold"
-                           TextColor="Black"
-                           HorizontalTextAlignment="Center"
-                           Margin="0,0,0,10" />
+                               Text="Set The CAN ID to XX"
+                               FontSize="24"
+                               FontAttributes="Bold"
+                               TextColor="Black"
+                               HorizontalTextAlignment="Center"
+                               Margin="0,0,0,10" />
                     <Button Text="Confirm"
-                            Clicked="OnConfirmClicked"
-                            BackgroundColor="Black"
-                            TextColor="White"
-                            HorizontalOptions="Center"
-                            WidthRequest="120"
-                            CornerRadius="25" />
+                                Clicked="OnConfirmClicked"
+                                BackgroundColor="Black"
+                                TextColor="White"
+                                HorizontalOptions="Center"
+                                WidthRequest="120"
+                                CornerRadius="25" />
                     <Button Text="Cancel"
-                            Clicked="OnCancelConfirmClicked"
-                            BackgroundColor="Gray"
-                            TextColor="White"
-                            HorizontalOptions="Center"
-                            WidthRequest="120"
-                            CornerRadius="25"
-                            Margin="0,10,0,0" />
+                                Clicked="OnCancelConfirmClicked"
+                                BackgroundColor="Gray"
+                                TextColor="White"
+                                HorizontalOptions="Center"
+                                WidthRequest="120"
+                                CornerRadius="25"
+                                Margin="0,10,0,0" />
                 </StackLayout>
             </Frame>
         </StackLayout>
-
     </Grid>
 </ContentPage>
