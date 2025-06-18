@@ -8,97 +8,99 @@
     x:Class="PCANAppM.KZV" 
     BackgroundColor="Black">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,Auto" Padding="20">
+    <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*" Padding="20">
 
         <!-- HEADER -->
-        <Grid Grid.Row="0"  
-            Padding="15"  
-            ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" Padding="15" ColumnDefinitions="Auto,*,Auto">
             <!-- Oshkosh logo -->
             <Image Source="oshkosh_logo.png"  
-           HeightRequest="65"  
-           WidthRequest="180"  
-           VerticalOptions="Center" />
+                   HeightRequest="65"  
+                   WidthRequest="180"  
+                   VerticalOptions="Center" />
+
+            <!-- Spacer -->
+            <BoxView Grid.Column="1" />
 
             <!-- Language toggle -->
             <ImageButton Grid.Column="2"  
-                 Source="language_icon.png"  
-                 HeightRequest="65"  
-                 WidthRequest="75"  
-                 BackgroundColor="Transparent"  
-                 
-                 VerticalOptions="Center" />
+                         Source="language_icon.png"  
+                         HeightRequest="65"  
+                         WidthRequest="75"  
+                         BackgroundColor="Transparent"  
+                         VerticalOptions="Center" />
         </Grid>
-        <!-- Initial View -->
-        <StackLayout x:Name="InitialKzvView" IsVisible="True" Spacing="10" VerticalOptions="Center">
-            <Rectangle HeightRequest="200" BackgroundColor="Transparent"/>
-            <Image Source="angle_sensor.png" HeightRequest="200" HorizontalOptions="Center" />
-            <Label x:Name="LatestCanIdLabel" 
-                   Text="Current CAN ID: --"
-                   TextColor="White"
-                   FontSize="28"
-                   HorizontalTextAlignment="Center"
-                   FontAttributes="Bold" />
-            <Button Text="Set CAN ID"
-                    Clicked="OnSetCanIdClicked"
-                    HorizontalOptions="Center"
-                    BackgroundColor="White"
-                    TextColor="Black"
-                    WidthRequest="200"
-                    CornerRadius="30" />
-        </StackLayout>
 
-        <!-- Set CAN ID View -->
-        <StackLayout x:Name="SetCanIdView" IsVisible="False" Spacing="15" VerticalOptions="Center">
-            <Frame BackgroundColor="White" Padding="20" CornerRadius="10">
-                <StackLayout>
-                    <Label Text="Set CAN ID"
-                           FontSize="24"
-                           FontAttributes="Bold"
-                           TextColor="Black"
-                           HorizontalTextAlignment="Center" />
-                    <Label Text="Enter the new CAN ID and Press Set"
-                           FontSize="16"
-                           TextColor="Black"
-                           HorizontalTextAlignment="Center"
-                           Margin="0,10,0,10" />
-                    <Entry x:Name="NewCanIdEntry"
-                           Placeholder="Enter New CAN ID"
-                           BackgroundColor="#EEE"
-                           TextColor="Black"
-                           WidthRequest="200"
-                           HorizontalOptions="Center" />
-                    <Button Text="Set"
-                            Clicked="OnSetClicked"
-                            BackgroundColor="Black"
-                            TextColor="White"
-                            HorizontalOptions="Center"
-                            WidthRequest="100"
-                            CornerRadius="25"
-                            Margin="0,10,0,0" />
-                </StackLayout>
-            </Frame>
-        </StackLayout>
+        <!-- MAIN CONTENT CENTERED -->
+        <Grid Grid.Row="1" VerticalOptions="Center" HorizontalOptions="Center">
+            <StackLayout x:Name="InitialKzvView" IsVisible="True" Spacing="10" VerticalOptions="Center">
+                <Rectangle HeightRequest="200" BackgroundColor="Transparent"/>
+                <Image Source="angle_sensor.png" HeightRequest="200" HorizontalOptions="Center" />
+                <Label x:Name="LatestCanIdLabel" 
+                       Text="Current CAN ID: --"
+                       TextColor="White"
+                       FontSize="28"
+                       HorizontalTextAlignment="Center"
+                       FontAttributes="Bold" />
+                <Button Text="Set CAN ID"
+                        Clicked="OnSetCanIdClicked"
+                        HorizontalOptions="Center"
+                        BackgroundColor="White"
+                        TextColor="Black"
+                        WidthRequest="200"
+                        CornerRadius="30" />
+            </StackLayout>
 
-        <!-- Confirm CAN ID View -->
-        <StackLayout x:Name="ConfirmCanIdView" IsVisible="False" Spacing="15" VerticalOptions="Center">
-            <Frame BackgroundColor="White" Padding="20" CornerRadius="10">
-                <StackLayout>
-                    <Label x:Name="ConfirmText"
+            <!-- Set CAN ID View -->
+            <StackLayout x:Name="SetCanIdView" IsVisible="False" Spacing="15" VerticalOptions="Center">
+                <Frame BackgroundColor="White" Padding="20" CornerRadius="10">
+                    <StackLayout>
+                        <Label Text="Set CAN ID"
+                               FontSize="24"
+                               FontAttributes="Bold"
+                               TextColor="Black"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="Enter the new CAN ID and Press Set"
+                               FontSize="16"
+                               TextColor="Black"
+                               HorizontalTextAlignment="Center"
+                               Margin="0,10,0,10" />
+                        <Entry x:Name="NewCanIdEntry"
+                               Placeholder="Enter New CAN ID"
+                               BackgroundColor="#EEE"
+                               TextColor="Black"
+                               WidthRequest="200"
+                               HorizontalOptions="Center" />
+                        <Button Text="Set"
+                                Clicked="OnSetClicked"
+                                BackgroundColor="Black"
+                                TextColor="White"
+                                HorizontalOptions="Center"
+                                WidthRequest="100"
+                                CornerRadius="25"
+                                Margin="0,10,0,0" />
+                    </StackLayout>
+                </Frame>
+            </StackLayout>
+
+            <!-- Confirm CAN ID View -->
+            <StackLayout x:Name="ConfirmCanIdView" IsVisible="False" Spacing="15" VerticalOptions="Center">
+                <Frame BackgroundColor="White" Padding="20" CornerRadius="10">
+                    <StackLayout>
+                        <Label x:Name="ConfirmText"
                                Text="Set The CAN ID to XX"
                                FontSize="24"
                                FontAttributes="Bold"
                                TextColor="Black"
                                HorizontalTextAlignment="Center"
                                Margin="0,0,0,10" />
-                    <Button Text="Confirm"
+                        <Button Text="Confirm"
                                 Clicked="OnConfirmClicked"
                                 BackgroundColor="Black"
                                 TextColor="White"
                                 HorizontalOptions="Center"
                                 WidthRequest="120"
                                 CornerRadius="25" />
-                    <Button Text="Cancel"
+                        <Button Text="Cancel"
                                 Clicked="OnCancelConfirmClicked"
                                 BackgroundColor="Gray"
                                 TextColor="White"
@@ -106,8 +108,9 @@
                                 WidthRequest="120"
                                 CornerRadius="25"
                                 Margin="0,10,0,0" />
-                </StackLayout>
-            </Frame>
-        </StackLayout>
+                    </StackLayout>
+                </Frame>
+            </StackLayout>
+        </Grid>
     </Grid>
 </ContentPage>
