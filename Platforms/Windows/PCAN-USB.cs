@@ -159,12 +159,16 @@ namespace PCANAppM.Platforms.Windows
 
         public TPCANStatus WriteFrame(UInt32 id, int dataLength, byte[] data, bool isExtended = false)
         {
+            // Ensure data is exactly 8 bytes
+            var paddedData = new byte[8];
+            Array.Copy(data, paddedData, Math.Min(data.Length, 8));
+
             var msg = new TPCANMsg
             {
                 MSGTYPE = isExtended ? TPCANMessageType.PCAN_MESSAGE_EXTENDED : TPCANMessageType.PCAN_MESSAGE_STANDARD,
                 ID = id,
                 LEN = (byte)dataLength,
-                DATA = data
+                DATA = paddedData
             };
             LastOperationStatus = PCANBasic.Write(PeakCANHandle, ref msg);
             if (LastOperationStatus != TPCANStatus.PCAN_ERROR_OK)
