@@ -104,44 +104,33 @@ public partial class FTLS : ContentPage
     private async void OnConfirmClicked(object sender, EventArgs e)
     {
         if (string.IsNullOrEmpty(_pendingNewCanId1)) return;
-    
+
         string currentId = _currentCanId1 ?? "00";
         string newId = _pendingNewCanId1.PadLeft(2, '0');
-    
-        // Send two messages in sequence
-        SendCanMessage($"0CEF{currentId}02", new byte[] { 0x0C, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, 8);
-        SendCanMessage($"0CEF{currentId}02", new byte[] { Convert.ToByte(newId, 16) }, 1);
-    
+
+        // Send 8-byte and 1-byte messages back-to-back
+        SendCanMessage($"0CEF{currentId}02", new byte[] { 0x0C, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }); // 8 bytes
+        SendCanMessage($"0CEF{currentId}02", new byte[] { Convert.ToByte(newId, 16) }); // 1 byte
+
         _currentCanId1 = newId;
         UpdateLatestCanIdLabel1(newId);
         ConfirmCanIdView2.IsVisible = false;
         InitialFtlsView.IsVisible = true;
     }
 
-
-    // New helper method to send both CAN messages back-to-back
-    private void SendCanIdChangeMessages(string currentId, string newIdHex)
-    {
-        SendCanMessage($"0CEF{currentId}02", new byte[] { 0x0C, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
-        SendCanMessage($"0CEF{currentId}02", new byte[] { Convert.ToByte(newIdHex, 16) });
-    }
-
-    // Updated to always send 8-byte padded data, and show alerts on failure
-    private void SendCanMessage(string canIdHex, byte[] data, int dataLen)
+    // ✅ This wrapper auto-detects data length and sends the message
+    private void SendCanMessage(string canIdHex, byte[] data)
     {
         if (_pcanUsb == null || !_isStarted)
             return;
-    
+
         try
         {
             uint canId = uint.Parse(canIdHex, NumberStyles.HexNumber);
-    
-            byte[] actualData = data.Length == dataLen
-                ? data
-                : data.Concat(Enumerable.Repeat((byte)0x00, dataLen - data.Length)).Take(dataLen).ToArray();
-    
-            var status = _pcanUsb.WriteFrame(canId, dataLen, actualData);
-    
+            int dataLen = data.Length;
+
+            var status = _pcanUsb.WriteFrame(canId, dataLen, data);
+
             if (status != TPCANStatus.PCAN_ERROR_OK)
             {
                 MainThread.BeginInvokeOnMainThread(async () =>
@@ -160,7 +149,6 @@ public partial class FTLS : ContentPage
             });
         }
     }
-
 
     private void OnCancelConfirmClicked1(object sender, EventArgs e)
     {
