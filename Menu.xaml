@@ -6,14 +6,15 @@
     xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui"  
     shell:Shell.NavBarIsVisible="False"  
     x:Class="PCANAppM.Menu" 
-    BackgroundColor="Black">
+    BackgroundColor="#121212">
 
-    <Grid RowDefinitions="Auto,Auto,*,Auto" ColumnDefinitions="*,Auto" Padding="20">
+    <Grid RowDefinitions="Auto, *, 60"  
+      ColumnDefinitions="*">
 
         <!-- HEADER -->
         <Grid Grid.Row="0"  
-            Padding="15"  
-            ColumnDefinitions="Auto,*,Auto">
+              Padding="25"  
+              ColumnDefinitions="Auto,*,Auto">  
             <!-- Oshkosh logo -->
             <Image Source="oshkosh_logo.png"  
                    HeightRequest="65"  
@@ -31,29 +32,29 @@
         </Grid>
 
         <!-- TITLE + BUTTONS + IMAGES -->
-        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="20">
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="30" HorizontalOptions="Center" VerticalOptions="Center">
 
             <!-- Left Side -->
-            <VerticalStackLayout Spacing="30" VerticalOptions="Center">
+            <VerticalStackLayout Spacing="20" VerticalOptions="Center">
                 <Label Grid.Row="1"  
                        Grid.ColumnSpan="2"  
-                       Text="Connect PCAN Device To..."  
-                       FontSize="90"  
+                       Text="{localization:Translate Menu}"  
+                       FontSize="85"  
                        FontAttributes="Bold"  
                        FontFamily="BarlowRegular"  
-                       TextColor="White"  
+                       TextColor="WhiteSmoke"  
                        HorizontalTextAlignment="Center"  
-                       Margin="0,0,0,0" />
+                       Margin="0,-20,0,0" />
 
                 <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
                     <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
                     <Button Text="{localization:Translate BAS}"  
                             FontFamily="BarlowRegular"  
-                            TextColor="White"  
+                            TextColor="WhiteSmoke"  
                             FontAttributes="Bold"  
                             FontSize="28"  
                             BackgroundColor="Transparent"  
-                            BorderColor="White"  
+                            BorderColor="WhiteSmoke"  
                             BorderWidth="5"  
                             CornerRadius="50"  
                             HeightRequest="100"  
@@ -63,37 +64,37 @@
                 </HorizontalStackLayout>
 
                 <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
-                    <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
-                    <Button Text="{localization:Translate KZV}"   
-                            TextColor="White"  
-                            FontAttributes="Bold"  
-                            FontFamily="BarlowRegular"  
-                            FontSize="28"  
-                            BackgroundColor="Transparent"  
-                            BorderColor="White"  
-                            BorderWidth="5"  
-                            CornerRadius="50"  
-                            HeightRequest="100" 
-                            WidthRequest="600"
-                            Clicked="OnKZValveClicked"
-                            />
-                </HorizontalStackLayout>
-
-                <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
-                    <Image Source="angle_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
+                    <Image Source="level_sensor.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
                     <Button Text="{localization:Translate FTLS}" 
-                            TextColor="White"  
+                            TextColor="WhiteSmoke"  
                             FontAttributes="Bold"
                             FontFamily="BarlowRegular"  
                             FontSize="28"  
                             BackgroundColor="Transparent"  
-                            BorderColor="White"  
+                            BorderColor="WhiteSmoke"  
                             BorderWidth="5"  
                             CornerRadius="50"  
                             HeightRequest="100"  
                             WidthRequest="600"
                             Clicked="OnFluidTankLevelSensorClicked"
                             />
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout HorizontalOptions="End" Spacing="20" Margin="0,0,130,0">
+                    <Image Source="kz_valve.png" HeightRequest="150" WidthRequest="600" VerticalOptions="Center" />
+                    <Button Text="{localization:Translate KZV}"   
+                            TextColor="WhiteSmoke"  
+                            FontAttributes="Bold"  
+                            FontFamily="BarlowRegular"  
+                            FontSize="28"  
+                            BackgroundColor="Transparent"  
+                            BorderColor="WhiteSmoke"  
+                            BorderWidth="5"  
+                            CornerRadius="50"  
+                            HeightRequest="100" 
+                            WidthRequest="600"
+                            Clicked="OnKZValveClicked"
+            />
                 </HorizontalStackLayout>
             </VerticalStackLayout>
         </Grid>
