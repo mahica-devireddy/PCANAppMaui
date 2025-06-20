@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
+    xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"  
+    xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui"  
+    shell:Shell.NavBarIsVisible="False"  
+    x:Class="PCANAppM.FTLS" 
+    BackgroundColor="Black">
+
+    <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*" Padding="20">
+
+        <!-- HEADER -->
+        <Grid Grid.Row="0" 
+              Padding="15" 
+              ColumnDefinitions="Auto,*,Auto">
+
+            <Image Source="oshkosh_logo.png" 
+                   HeightRequest="65" 
+                   WidthRequest="180" 
+                   VerticalOptions="Center" />
+
+            <ImageButton Grid.Column="2" 
+                         Source="language_icon.png" 
+                         HeightRequest="65" 
+                         WidthRequest="75"
+                         BackgroundColor="Transparent" 
+                         VerticalOptions="Center" 
+                         Clicked="OnLanguageButtonClicked" />
+
+        </Grid>
+
+        <!-- MAIN CONTENT -->
+        <Grid Grid.Row="1" 
+              VerticalOptions="Center" 
+              HorizontalOptions="CenterAndExpand">
+
+            <!-- Initial View -->
+            <StackLayout x:Name="InitialFtlsView" 
+                         IsVisible="True" 
+                         Spacing="20" 
+                         VerticalOptions="Center">
+
+                <Image Source="level_sensor.png" 
+                       HeightRequest="350" 
+                       HorizontalOptions="Center" 
+                       Margin="0,-20,0,0"/>
+
+                <Label x:Name="LatestCanIdLabel2" 
+                       Text="{localization:Translate CurrentKZV}"
+                       TextColor="White" 
+                       FontSize="40" 
+                       FontFamily="BarlowRegular"
+                       HorizontalTextAlignment="Center" 
+                       FontAttributes="Bold" />
+
+                <Button Text="{localization:Translate SetButton}" 
+                        Clicked="OnSetCanIdClicked"
+                        FontSize="35" 
+                        FontFamily="BarlowRegular"
+                        HorizontalOptions="Center" 
+                        BackgroundColor="White"
+                        TextColor="Black"
+                        WidthRequest="250" 
+                        HeightRequest="65"
+                        CornerRadius="30" />
+
+            </StackLayout>
+
+            <!-- Set CAN ID Dialog -->
+            <Frame x:Name="SetCanIdView2" 
+                   BackgroundColor="Black" 
+                   Padding="0" 
+                   CornerRadius="10"
+                   WidthRequest="1000" 
+                   HeightRequest="400" 
+                   HasShadow="False"
+                   BorderColor="Transparent" 
+                   IsVisible="False">
+
+                <Grid RowDefinitions="Auto,Auto,Auto,Auto" 
+                      ColumnDefinitions="*,Auto"
+                      BackgroundColor="LightGray">
+
+                    <StackLayout Grid.Row="0" 
+                                 Grid.Column="0" 
+                                 Grid.ColumnSpan="2"
+                                 BackgroundColor="White" 
+                                 Padding="40,30" 
+                                 Spacing="10">
+
+                        <Label Text="{localization:Translate SetButton}" 
+                               FontFamily="BarlowRegular"
+                               FontSize="50" 
+                               FontAttributes="Bold" 
+                               TextColor="Black" />
+
+                        <Label Text="{localization:Translate Instructions}" 
+                               FontFamily="BarlowRegular"
+                               FontSize="30" 
+                               TextColor="Black" />
+
+                    </StackLayout>
+
+                    <Button Grid.Row="0"
+                            Grid.Column="1" 
+                            Text="✕" 
+                            FontSize="30"
+                            TextColor="Black" 
+                            BackgroundColor="Transparent"
+                            HorizontalOptions="End" 
+                            VerticalOptions="Start"
+                            Clicked="OnExitClicked" 
+                            Padding="0"
+                            WidthRequest="40" 
+                            HeightRequest="40" />
+
+                    <BoxView Grid.Row="1" 
+                             Grid.ColumnSpan="2" 
+                             HeightRequest="10"
+                             BackgroundColor="Black" 
+                             HorizontalOptions="Fill" />
+
+                    <StackLayout Grid.Row="2" 
+                                 Grid.ColumnSpan="2"
+                                 VerticalOptions="Center" 
+                                 HorizontalOptions="Center"
+                                 Spacing="20" 
+                                 Margin="0,45,0,0">
+
+                        <Entry x:Name="NewCanIdEntry2" 
+                               Placeholder ="Enter New CAN ID"
+                               BackgroundColor="White" 
+                               TextColor="Gray" 
+                               FontSize="24"
+                               FontFamily="BarlowRegular"
+                               WidthRequest="450" 
+                               HeightRequest="60" />
+
+                    </StackLayout>
+
+                    <StackLayout Grid.Row="3" 
+                                 Grid.ColumnSpan="2"
+                                 VerticalOptions="Start" 
+                                 HorizontalOptions="Center"
+                                 Margin="0,20,0,0">
+
+                        <Button Text="{localization:Translate Set}" 
+                                FontFamily="BarlowRegular" 
+                                Clicked="OnSetClicked"
+                                BackgroundColor="Black" 
+                                TextColor="White"
+                                FontSize="35" 
+                                WidthRequest="200" 
+                                HeightRequest="55"
+                                CornerRadius="30" />
+
+                    </StackLayout>
+                </Grid>
+            </Frame>
+
+            <!-- CONFIRM CAN ID DIALOG -->
+            <Grid x:Name="ConfirmCanIdView2" 
+                  Grid.Row="1" 
+                  VerticalOptions="Center" 
+                  HorizontalOptions="Center" 
+                  IsVisible="False">
+
+                <Frame BackgroundColor="Black"
+                   Padding="0"
+                   CornerRadius="10"
+                   WidthRequest="1000"
+                   HeightRequest="400"
+                   HasShadow="False"
+                   BorderColor="Transparent">
+
+                    <Grid RowDefinitions="Auto,Auto,Auto" 
+                          ColumnDefinitions="*" 
+                          BackgroundColor="LightGray">
+
+                        <!-- White Header Section -->
+                        <StackLayout Grid.Row="0" 
+                                     BackgroundColor="White" 
+                                     Padding="40,70" 
+                                     Spacing="10">
+
+                            <Label x:Name="ConfirmText2"
+                               Text="{localization:Translate ConfirmMessage}"
+                               FontSize="80"
+                               FontAttributes="Bold"
+                               TextColor="Black"
+                               FontFamily="BarlowRegular"
+                               HorizontalTextAlignment="Center" />
+
+                        </StackLayout>
+                        <Button Grid.Row="0" 
+                                Grid.Column="1" 
+                                Text="✕" 
+                                FontSize="30"
+                                TextColor="Black" 
+                                BackgroundColor="Transparent"
+                                HorizontalOptions="End" 
+                                VerticalOptions="Start"
+                                Clicked="OnExitClicked" 
+                                Padding="0"
+                                WidthRequest="40" 
+                                HeightRequest="40" />
+
+                        <!-- Black separator -->
+                        <BoxView Grid.Row="1" HeightRequest="10" BackgroundColor="Black" HorizontalOptions="Fill" />
+
+                        <!-- Confirm Button -->
+                        <StackLayout Grid.Row="2" VerticalOptions="Center" HorizontalOptions="Center" Margin="0,50,0,0">
+                            <Button Text="{localization:Translate Confirm}"
+                                FontFamily="BarlowRegular"
+                                BackgroundColor="Black"
+                                TextColor="White"
+                                FontSize="35"
+                                WidthRequest="200"
+                                HeightRequest="60"
+                                CornerRadius="30"
+                                HorizontalOptions="Center"
+                                Clicked="OnConfirmClicked" />
+
+                        </StackLayout>
+                    </Grid>
+                </Frame>
+            </Grid>
+        </Grid>
+    </Grid>
+</ContentPage>
