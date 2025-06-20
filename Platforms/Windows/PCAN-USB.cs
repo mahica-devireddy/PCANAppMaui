@@ -3,11 +3,11 @@ using Peak.Can.Basic;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace PCANAppMaui.Platforms.Windows
+namespace PCANAppM.Platforms.Windows
 {
     using PCANHandle = UInt16;
 
@@ -33,7 +33,8 @@ namespace PCANAppMaui.Platforms.Windows
         public List<Packet> WatchPackets { get; set; } = new();
         public Packet? DiffPacket { get; set; } = null;
 
-        private CancellationTokenSource? _readCts;
+        private Thread? _readThread;
+        private bool _rxMessages = false;
 
         public static List<string> GetUSBDevices()
         {
@@ -138,8 +139,12 @@ namespace PCANAppMaui.Platforms.Windows
                 ? "Initialized."
                 : $"Initialization failed: {PeakCANStatusErrorString(LastOperationStatus)}");
 
-            if (LastOperationStatus == TPCANStatus.PCAN_ERROR_OK && enableRead)
-                StartReading();
+            if (LastOperationStatus == TPCANStatus.PCAN_ERROR_OK)
+            {
+                PeakCANHandle = handle;
+                if (enableRead)
+                    StartReading();
+            }
 
             return LastOperationStatus;
         }
@@ -152,11 +157,11 @@ namespace PCANAppMaui.Platforms.Windows
             return ret;
         }
 
-        public TPCANStatus WriteFrame(UInt32 id, int dataLength, byte[] data)
+        public TPCANStatus WriteFrame(UInt32 id, int dataLength, byte[] data, bool isExtended = false)
         {
             var msg = new TPCANMsg
             {
-                MSGTYPE = TPCANMessageType.PCAN_MESSAGE_STANDARD,
+                MSGTYPE = isExtended ? TPCANMessageType.PCAN_MESSAGE_EXTENDED : TPCANMessageType.PCAN_MESSAGE_STANDARD,
                 ID = id,
                 LEN = (byte)dataLength,
                 DATA = data
@@ -180,71 +185,84 @@ namespace PCANAppMaui.Platforms.Windows
         public void StartReading()
         {
             StopReading();
-            _readCts = new CancellationTokenSource();
-            Task.Run(() => ReadLoop(_readCts.Token), _readCts.Token);
+            _rxMessages = true;
+            _readThread = new Thread(ReadLoop) { IsBackground = true };
+            _readThread.Start();
         }
 
         public void StopReading()
         {
-            _readCts?.Cancel();
-            _readCts = null;
+            _rxMessages = false;
+            if (_readThread != null)
+            {
+                _readThread.Join(200);
+                _readThread = null;
+            }
         }
 
-        private void ReadLoop(CancellationToken token)
+        private void ReadLoop()
         {
-            while (!token.IsCancellationRequested)
+            while (_rxMessages)
             {
-                TPCANMsg canMsg;
-                TPCANTimestamp canTimestamp;
-                var result = PCANBasic.Read(PeakCANHandle, out canMsg, out canTimestamp);
-
-                if (result == TPCANStatus.PCAN_ERROR_OK)
+                bool messageRead = false; // Initialize the variable to avoid CS0165
+                do
                 {
-                    ulong micros = (ulong)canTimestamp.micros + 1000UL * canTimestamp.millis + 0x100000000UL * 1000UL * canTimestamp.millis_overflow;
-                    var packet = new Packet
-                    {
-                        Microseconds = micros,
-                        Id = canMsg.ID,
-                        Length = canMsg.LEN,
-                        Data = (byte[])canMsg.DATA.Clone()
-                    };
+                    TPCANMsg canMsg;
+                    TPCANTimestamp canTimestamp;
+                    var result = PCANBasic.Read(PeakCANHandle, out canMsg, out canTimestamp);
 
-                    if (OverwriteLastPacket)
+                    if (result == TPCANStatus.PCAN_ERROR_OK)
                     {
-                        var existing = Packets.Find(x => x.Id == packet.Id);
-                        if (existing != null)
+                        messageRead = true;
+                        ulong micros = (ulong)canTimestamp.micros + 1000UL * canTimestamp.millis + 0x100000000UL * 1000UL * canTimestamp.millis_overflow;
+                        var packet = new Packet
                         {
-                            Packets.Remove(existing);
+                            Microseconds = micros,
+                            Id = canMsg.ID,
+                            Length = canMsg.LEN,
+                            Data = (byte[])canMsg.DATA.Clone(),
+                            IsExtended = (canMsg.MSGTYPE & TPCANMessageType.PCAN_MESSAGE_EXTENDED) == TPCANMessageType.PCAN_MESSAGE_EXTENDED
+                        };
+
+                        if (OverwriteLastPacket)
+                        {
+                            var existing = Packets.Find(x => x.Id == packet.Id && x.IsExtended == packet.IsExtended);
+                            if (existing != null)
+                            {
+                                Packets.Remove(existing);
+                            }
+                        }
+                        Packets.Add(packet);
+
+                        MessageReceived?.Invoke(packet);
+
+                        if (WatchForPackets && FoundPacket(packet))
+                        {
+                            RaiseFeedback($"Found {PacketToString(packet)} {DateTime.Now.ToLocalTime()}");
+                            if (DiffPacket != null)
+                            {
+                                ulong diff = packet.Microseconds - DiffPacket.Microseconds;
+                                RaiseFeedback($"Diff: {(Convert.ToDouble(diff) / 1000000.0d):F6} {DateTime.Now.ToLocalTime()}");
+                            }
+                            else
+                            {
+                                RaiseFeedback("First Packet");
+                            }
+                            DiffPacket = Packet.Clone(packet);
                         }
                     }
-                    Packets.Add(packet);
-
-                    MessageReceived?.Invoke(packet);
-
-                    if (WatchForPackets && FoundPacket(packet))
+                    else if (result == TPCANStatus.PCAN_ERROR_QRCVEMPTY)
                     {
-                        RaiseFeedback($"Found {PacketToString(packet)} {DateTime.Now.ToLocalTime()}");
-                        if (DiffPacket != null)
-                        {
-                            ulong diff = packet.Microseconds - DiffPacket.Microseconds;
-                            RaiseFeedback($"Diff: {(Convert.ToDouble(diff) / 1000000.0d):F6} {DateTime.Now.ToLocalTime()}");
-                        }
-                        else
-                        {
-                            RaiseFeedback("First Packet");
-                        }
-                        DiffPacket = Packet.Clone(packet);
+                        messageRead = false;
                     }
-                }
-                else if (result == TPCANStatus.PCAN_ERROR_QRCVEMPTY)
-                {
-                    Thread.Sleep(10); // No data, wait a bit
-                }
-                else if (result == TPCANStatus.PCAN_ERROR_ILLOPERATION)
-                {
-                    RaiseFeedback("Illegal operation error during CAN read.");
-                    break;
-                }
+                    else if (result == TPCANStatus.PCAN_ERROR_ILLOPERATION)
+                    {
+                        RaiseFeedback("Illegal operation error during CAN read.");
+                        return;
+                    }
+                } while (messageRead && _rxMessages);
+
+                Thread.Sleep(10);
             }
         }
 
@@ -257,7 +275,7 @@ namespace PCANAppMaui.Platforms.Windows
         {
             foreach (var packet in WatchPackets)
             {
-                if (packet.Id == currentPacket.Id && packet.Length == currentPacket.Length)
+                if (packet.Id == currentPacket.Id && packet.Length == currentPacket.Length && packet.IsExtended == currentPacket.IsExtended)
                 {
                     bool match = true;
                     for (int i = 0; i < packet.Length; i++)
@@ -281,6 +299,8 @@ namespace PCANAppMaui.Platforms.Windows
             sb.Append((packet.Microseconds / 1000000.0d).ToString("F6", CultureInfo.InvariantCulture));
             sb.Append(' ');
             sb.Append(packet.Id);
+            if (packet.IsExtended)
+                sb.Append(" (EXT)");
             sb.Append(' ');
             sb.Append(packet.Length);
             sb.Append(' ');
@@ -298,6 +318,7 @@ namespace PCANAppMaui.Platforms.Windows
             public uint Id { get; set; }
             public byte Length { get; set; }
             public byte[] Data { get; set; } = Array.Empty<byte>();
+            public bool IsExtended { get; set; }
 
             public static Packet Clone(Packet src)
             {
@@ -306,7 +327,8 @@ namespace PCANAppMaui.Platforms.Windows
                     Microseconds = src.Microseconds,
                     Id = src.Id,
                     Length = src.Length,
-                    Data = (byte[])src.Data.Clone()
+                    Data = (byte[])src.Data.Clone(),
+                    IsExtended = src.IsExtended
                 };
             }
         }
