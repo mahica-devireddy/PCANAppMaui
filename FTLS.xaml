@@ -6,28 +6,29 @@
     xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui"  
     shell:Shell.NavBarIsVisible="False"  
     x:Class="PCANAppM.FTLS" 
-    BackgroundColor="Black">
+    BackgroundColor="#121212">
 
-    <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*" Padding="20">
+    <Grid RowDefinitions="Auto, *, 60"  
+      ColumnDefinitions="*">
 
         <!-- HEADER -->
-        <Grid Grid.Row="0" 
-              Padding="15" 
-              ColumnDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0"  
+          Padding="25"  
+          ColumnDefinitions="Auto,*,Auto">
+            <!-- Oshkosh logo -->
+            <Image Source="oshkosh_logo.png"  
+               HeightRequest="65"  
+               WidthRequest="180"  
+               VerticalOptions="Center" />
 
-            <Image Source="oshkosh_logo.png" 
-                   HeightRequest="65" 
-                   WidthRequest="180" 
-                   VerticalOptions="Center" />
-
-            <ImageButton Grid.Column="2" 
-                         Source="language_icon.png" 
-                         HeightRequest="65" 
-                         WidthRequest="75"
-                         BackgroundColor="Transparent" 
-                         VerticalOptions="Center" 
-                         Clicked="OnLanguageButtonClicked" />
-
+            <!-- Language toggle -->
+            <ImageButton Grid.Column="2"  
+                     Source="language_icon.png"  
+                     HeightRequest="65"  
+                     WidthRequest="75"  
+                     BackgroundColor="Transparent"  
+                     Clicked="OnLanguageButtonClicked"  
+                     VerticalOptions="Center" />
         </Grid>
 
         <!-- MAIN CONTENT -->
@@ -47,7 +48,7 @@
                        Margin="0,-20,0,0"/>
 
                 <Label x:Name="LatestCanIdLabel2" 
-                       Text="{localization:Translate CurrentKZV}"
+                       Text="{localization:Translate CurrentFTLS}"
                        TextColor="White" 
                        FontSize="40" 
                        FontFamily="BarlowRegular"
@@ -61,7 +62,7 @@
                         HorizontalOptions="Center" 
                         BackgroundColor="White"
                         TextColor="Black"
-                        WidthRequest="250" 
+                        WidthRequest="400" 
                         HeightRequest="65"
                         CornerRadius="30" />
 
@@ -129,7 +130,7 @@
                                  Margin="0,45,0,0">
 
                         <Entry x:Name="NewCanIdEntry2" 
-                               Placeholder ="Enter New CAN ID"
+                               Placeholder ="{localization:Translate Entry}"
                                BackgroundColor="White" 
                                TextColor="Gray" 
                                FontSize="24"
