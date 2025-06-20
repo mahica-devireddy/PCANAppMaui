@@ -3,7 +3,7 @@ using System.Globalization;
 using PCANAppM.Resources.Languages;
 using Peak.Can.Basic;
 using System.Collections.ObjectModel;
-using System.Globalization;
+using System.Diagnostics;
 
 #if WINDOWS
 using PCANAppM.Platforms.Windows;
@@ -52,7 +52,6 @@ public partial class FTLS : ContentPage
         {
             DisplayAlert("Init Failed", _pcanUsb.PeakCANStatusErrorString(status), "OK");
         }
-
 #endif
     }
 
@@ -78,7 +77,7 @@ public partial class FTLS : ContentPage
 
     private void OnPcanFeedback(string message)
     {
-        // Not shown in UI
+        // Optional: Display or log feedback
     }
 
     private async void OnSetCanIdClicked(object sender, EventArgs e)
@@ -109,9 +108,7 @@ public partial class FTLS : ContentPage
         string currentId = _currentCanId1 ?? "00";
         string newId = _pendingNewCanId1.PadLeft(2, '0');
 
-        // Send CAN messages according to protocol
-        SendCanMessage($"0CEF{currentId}02", new byte[] { 0x0C, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, 8);
-        SendCanMessage($"0CEF{currentId}02", new byte[] { Convert.ToByte(newId, 16)}, 1);
+        SendCanIdChangeMessages(currentId, newId); // ✅ Ensures both messages are sent within 1 second
 
         _currentCanId1 = newId;
         UpdateLatestCanIdLabel1(newId);
@@ -119,18 +116,45 @@ public partial class FTLS : ContentPage
         InitialFtlsView.IsVisible = true;
     }
 
-    private void SendCanMessage(string canIdHex, byte[] data, int dataLen)
+    // ✅ New helper method to send both CAN messages back-to-back
+    private void SendCanIdChangeMessages(string currentId, string newIdHex)
+    {
+        SendCanMessage($"0CEF{currentId}02", new byte[] { 0x0C, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 });
+        SendCanMessage($"0CEF{currentId}02", new byte[] { Convert.ToByte(newIdHex, 16) });
+    }
+
+    // ✅ Updated to always send 8-byte padded data, and show alerts on failure
+    private void SendCanMessage(string canIdHex, byte[] data)
     {
         if (_pcanUsb == null || !_isStarted)
             return;
 
-        uint canId = uint.Parse(canIdHex, NumberStyles.HexNumber);
-        byte[] paddedData = data.Length < dataLen
-            ? data.Concat(Enumerable.Repeat((byte)0x00, dataLen - data.Length)).ToArray()
-            : data;
+        try
+        {
+            uint canId = uint.Parse(canIdHex, NumberStyles.HexNumber);
+            byte[] paddedData = data.Concat(Enumerable.Repeat((byte)0x00, 8 - data.Length)).Take(8).ToArray();
 
-        var status = _pcanUsb.WriteFrame(canId, dataLen, paddedData, canId > 0x7FF);
-        // You can optionally log the status
+            var status = _pcanUsb.WriteFrame(canId, 8, paddedData, canId > 0x7FF);
+
+            if (status != TPCANStatus.PCAN_ERROR_OK)
+            {
+                MainThread.BeginInvokeOnMainThread(async () =>
+                {
+                    await Application.Current.MainPage.DisplayAlert("Send Failed",
+                        $"Failed to send CAN message.\nStatus: {_pcanUsb!.PeakCANStatusErrorString(status)}",
+                        "OK");
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            MainThread.BeginInvokeOnMainThread(async () =>
+            {
+                await Application.Current.MainPage.DisplayAlert("Exception",
+                    $"Exception while sending CAN message: {ex.Message}",
+                    "OK");
+            });
+        }
     }
 
     private void OnCancelConfirmClicked1(object sender, EventArgs e)
@@ -154,16 +178,16 @@ public partial class FTLS : ContentPage
 
     private void NewCanIdEntry_Focused1(object sender, FocusEventArgs e)
     {
-
+        // Placeholder for focus handling
     }
 
     private async void OnLanguageButtonClicked(object sender, EventArgs e)
     {
         LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
         _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
-
     }
 }
+
 public class CanMessageViewModel2
 {
     public string Direction { get; set; } = "";
