@@ -151,7 +151,7 @@ public partial class BAS : ContentPage
 
     private void UpdateLatestCanIdLabel1(string id)
     {
-        LatestCanIdLabel1.Text = $"Current CAN ID of the Angle Sensor: {id}";
+        LatestCanIdLabel1.Text = _localizationResourceManager["CurrentKZV"] + " " + id;
     }
 
     private void NewCanIdEntry_Focused1(object sender, FocusEventArgs e)
