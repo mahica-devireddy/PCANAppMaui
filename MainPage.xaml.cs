@@ -19,7 +19,7 @@ namespace PCANAppM
         private readonly ILocalizationResourceManager _localizationResourceManager;
         private Timer deviceCheckTimer;
         private string lastStatus = "";
-        private bool isDeviceConnected = false;
+        private bool isDeviceConnected;
 
         public MainPage(ILocalizationResourceManager localizationResourceManager)
         {
@@ -86,34 +86,20 @@ namespace PCANAppM
             }
             else
             {
-                await DisplayAlert("Connection Required", "You must plug in PCAN USB", "ok");
+                ConnectionDialog.IsVisible = true;
             }
+        }
+
+        private void OnConnectionDialogOkClicked(object sender, EventArgs e)
+        {
+            ConnectionDialog.IsVisible = false;
         }
 
         private async void OnLanguageButtonClicked(object sender, EventArgs e)
         {
-            string action = await DisplayActionSheet(
-                "Select Language", 
-                "Cancel", 
-                null, 
-                "English", 
-                "Español");
-
-            if (action == "English")
-            {
-                LanguageState.CurrentLanguage = "en";
-            }
-            else if (action == "Español")
-            {
-                LanguageState.CurrentLanguage = "es";
-            }
-            else
-            {
-                return; // Cancel or outside click
-            }
-
+            LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
             _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
-            UpdateDeviceStatus();
+            //UpdateDeviceStatus();
         }
 
         private async void OnNextButtonClicked(object sender, EventArgs e)
