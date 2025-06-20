@@ -138,7 +138,7 @@ public partial class KZV : ContentPage
 
     private void UpdateLatestCanIdLabel(string id)
     {
-        LatestCanIdLabel.Text = $"Current CAN ID of the KZ Valve: {id}";
+        LatestCanIdLabel.Text = _localizationResourceManager["CurrentFTLS"] + " " + id;
     }
 
     private void NewCanIdEntry_Focused(object sender, FocusEventArgs e)
