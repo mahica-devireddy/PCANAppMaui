@@ -1,6 +1,7 @@
+using LocalizationResourceManager.Maui;
+using Peak.Can.Basic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using Peak.Can.Basic;
 
 #if WINDOWS
 using PCANAppM.Platforms.Windows;
@@ -10,6 +11,7 @@ namespace PCANAppM;
 
 public partial class KZV : ContentPage
 {
+    private readonly ILocalizationResourceManager _localizationResourceManager;
     private string? _currentCanId = null;
     private string? _pendingNewCanId = null;
 #if WINDOWS
@@ -18,8 +20,9 @@ public partial class KZV : ContentPage
     private bool _isStarted = false;
 #endif
 
-    public KZV()
+    public KZV(ILocalizationResourceManager localizationResourceManager)
     {
+        _localizationResourceManager = localizationResourceManager;
         InitializeComponent();
 #if WINDOWS
         var devices = PCAN_USB.GetUSBDevices();
@@ -141,6 +144,12 @@ public partial class KZV : ContentPage
     private void NewCanIdEntry_Focused(object sender, FocusEventArgs e)
     {
 
+    }
+
+    private async void OnLanguageButtonClicked(object sender, EventArgs e)
+    {
+        LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
+        _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
     }
 }
 
