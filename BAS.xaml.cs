@@ -1,6 +1,9 @@
+using LocalizationResourceManager.Maui;
+using System.Globalization;
+using PCANAppM.Resources.Languages;
+using Peak.Can.Basic;
 using System.Collections.ObjectModel;
 using System.Globalization;
-using Peak.Can.Basic;
 
 #if WINDOWS
 using PCANAppM.Platforms.Windows;
@@ -12,15 +15,18 @@ public partial class BAS : ContentPage
 {
     private string? _currentCanId1 = null;
     private string? _pendingNewCanId1 = null;
+    private readonly ILocalizationResourceManager _localizationResourceManager;
 #if WINDOWS
     private PCAN_USB? _pcanUsb;
     private ushort _currentHandle;
     private bool _isStarted = false;
 #endif
 
-    public BAS()
+    public BAS(ILocalizationResourceManager localizationResourceManager)
     {
+        _localizationResourceManager = localizationResourceManager;
         InitializeComponent();
+
 #if WINDOWS
         var devices = PCAN_USB.GetUSBDevices();
         if (devices.Count == 0)
@@ -46,6 +52,7 @@ public partial class BAS : ContentPage
         {
             DisplayAlert("Init Failed", _pcanUsb.PeakCANStatusErrorString(status), "OK");
         }
+
 #endif
     }
 
@@ -151,8 +158,14 @@ public partial class BAS : ContentPage
     {
 
     }
-}
 
+    private async void OnLanguageButtonClicked(object sender, EventArgs e)
+    {
+        LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
+        _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
+
+    }
+}
 public class CanMessageViewModel1
 {
     public string Direction { get; set; } = "";
