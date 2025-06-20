@@ -152,13 +152,27 @@ namespace PCANAppMaui.Platforms.Windows
             return ret;
         }
 
+        // public TPCANStatus WriteFrame(UInt32 id, int dataLength, byte[] data)
+        // {
+        //     var msg = new TPCANMsg
+        //     {
+        //         MSGTYPE = TPCANMessageType.PCAN_MESSAGE_STANDARD,
+        //         ID = id,
+        //         LEN = (byte)dataLength,
+        //         DATA = data
+        //     };
+        //     LastOperationStatus = PCANBasic.Write(PeakCANHandle, ref msg);
+        //     if (LastOperationStatus != TPCANStatus.PCAN_ERROR_OK)
+        //         RaiseFeedback(PeakCANStatusErrorString(LastOperationStatus));
+        //     return LastOperationStatus;
+        // }
         public TPCANStatus WriteFrame(UInt32 id, int dataLength, byte[] data)
         {
             var msg = new TPCANMsg
             {
-                MSGTYPE = TPCANMessageType.PCAN_MESSAGE_STANDARD,
                 ID = id,
                 LEN = (byte)dataLength,
+                MSGTYPE = id > 0x7FF ? TPCANMessageType.PCAN_MESSAGE_EXTENDED : TPCANMessageType.PCAN_MESSAGE_STANDARD,
                 DATA = data
             };
             LastOperationStatus = PCANBasic.Write(PeakCANHandle, ref msg);
@@ -166,6 +180,7 @@ namespace PCANAppMaui.Platforms.Windows
                 RaiseFeedback(PeakCANStatusErrorString(LastOperationStatus));
             return LastOperationStatus;
         }
+
 
         public string PeakCANStatusErrorString(TPCANStatus error)
         {
