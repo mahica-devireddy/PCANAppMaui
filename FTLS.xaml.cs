@@ -55,6 +55,7 @@ public partial class FTLS : ContentPage
 #endif
     }
 
+
 #if WINDOWS
     private void SubscribeToPcanUsbEvents()
     {
@@ -103,51 +104,62 @@ public partial class FTLS : ContentPage
 
     private async void OnConfirmClicked(object sender, EventArgs e)
     {
+#if WINDOWS
         if (string.IsNullOrEmpty(_pendingNewCanId1)) return;
 
         string currentId = _currentCanId1 ?? "00";
         string newId = _pendingNewCanId1.PadLeft(2, '0');
 
-        // Send 8-byte and 1-byte messages back-to-back
-        SendCanMessage($"0CEF{currentId}02", new byte[] { 0x0C, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }); // 8 bytes
-        SendCanMessage($"0CEF{currentId}02", new byte[] { Convert.ToByte(newId, 16) }); // 1 byte
+        // Change FTLS CAN ID using the new protocol
+        await ChangeFtlsCanIdAsync(currentId, newId);
 
         _currentCanId1 = newId;
         UpdateLatestCanIdLabel1(newId);
         ConfirmCanIdView2.IsVisible = false;
         InitialFtlsView.IsVisible = true;
+#endif
     }
 
-    // ✅ This wrapper auto-detects data length and sends the message
-    private void SendCanMessage(string canIdHex, byte[] data)
+#if WINDOWS
+    private async Task ChangeFtlsCanIdAsync(string currentId, string newId)
     {
         if (_pcanUsb == null || !_isStarted)
             return;
 
-        try
-        {
-            uint canId = uint.Parse(canIdHex, NumberStyles.HexNumber);
-            int dataLen = data.Length;
+        // Compose CAN ID
+        string canIdHex = $"0CEF{currentId}02";
+        uint canId = uint.Parse(canIdHex, NumberStyles.HexNumber);
 
-            var status = _pcanUsb.WriteFrame(canId, dataLen, data);
+        // First message: data = [0x72, 0x6F, 0x74, 0x61, 0x2D, 0x65, 0x6E, 0x6A]
+        byte[] firstData = new byte[] { 0x72, 0x6F, 0x74, 0x61, 0x2D, 0x65, 0x6E, 0x6A };
+        _pcanUsb.WriteFrame(canId, 8, firstData, canId > 0x7FF);
 
-            if (status != TPCANStatus.PCAN_ERROR_OK)
-            {
-                MainThread.BeginInvokeOnMainThread(async () =>
-                {
-                    await Application.Current.MainPage.DisplayAlert("Send Failed",
-                        $"CAN message failed to send.\nStatus: {_pcanUsb!.PeakCANStatusErrorString(status)}", "OK");
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            MainThread.BeginInvokeOnMainThread(async () =>
-            {
-                await Application.Current.MainPage.DisplayAlert("Exception",
-                    $"Error while sending CAN message: {ex.Message}", "OK");
-            });
-        }
+        // Wait a short time to ensure the message is sent (optional, but recommended)
+        await Task.Delay(100);
+
+        // Second message: data = [newId] (data length = 1)
+        byte[] secondData = new byte[] { Convert.ToByte(newId, 16) };
+        _pcanUsb.WriteFrame(canId, 1, secondData, canId > 0x7FF);
+    }
+#endif
+
+    // This wrapper auto-detects data length and sends the message
+    private void SendCanMessage(string canIdHex, byte[] data, int dataLen)
+    {
+        if (_pcanUsb == null || !_isStarted)
+            return;
+
+        uint canId = uint.Parse(canIdHex, NumberStyles.HexNumber);
+        
+        var buffer = new byte[8];
+        Array.Copy(data, buffer, Math.Min(data.Length, 8));
+
+        _pcanUsb.WriteFrame(
+            canId, 
+            8, 
+            buffer,
+            canId > 0x7FF
+        );
     }
 
     private void OnCancelConfirmClicked1(object sender, EventArgs e)
@@ -166,7 +178,7 @@ public partial class FTLS : ContentPage
 
     private void UpdateLatestCanIdLabel1(string id)
     {
-        LatestCanIdLabel2.Text = $"Current CAN ID of the Fluid Tank Level Sensor: {id}";
+        LatestCanIdLabel2.Text = _localizationResourceManager["CurrentFTLS"] + " " + id;
     }
 
     private void NewCanIdEntry_Focused1(object sender, FocusEventArgs e)
