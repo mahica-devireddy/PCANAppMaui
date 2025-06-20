@@ -6,7 +6,7 @@
     xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui"  
     shell:Shell.NavBarIsVisible="False"  
     x:Class="PCANAppM.MainPage"  
-    BackgroundColor="Black">  
+    BackgroundColor="#121212">  
 
     <!-- Layout grid:  
        Row 0 = header (logo + language button)  
@@ -35,59 +35,113 @@
                          VerticalOptions="Center" />  
         </Grid>  
 
-        <!-- MIDDLE -->
-        <VerticalStackLayout  
-            Grid.Row="1"  
-            HorizontalOptions="Center"  
-            VerticalOptions="Center"  
-            Padding="0">
+        <!-- MAIN CONTENT (everything except header and dialog) -->
+        <ContentView x:Name="MainContent" Grid.Row="1" IsVisible="True">
+            <VerticalStackLayout  
+                HorizontalOptions="Center"  
+                VerticalOptions="Center"  
+                Padding="0">
 
-            <!-- PCAN device picture -->
-            <Image Source="blackpcan.png"  
-                   Aspect="AspectFit"  
-                   HeightRequest="480" />
+                <!-- PCAN device picture -->
+                <Image Source="pcan.png"  
+                       Aspect="AspectFit"  
+                       HeightRequest="480" />
 
-            <Rectangle Fill="Transparent" HeightRequest="10" />
+                <Rectangle Fill="Transparent" HeightRequest="10" />
 
-            <!-- Status text (bound/updated in code-behind) -->
-            <Label x:Name="StatusLabel"  
-                   Text="{localization:Translate Initializing}"  
-                   FontSize="50"  
-                   FontAttributes="Bold"
-                   FontFamily="BarlowRegular"
-                   TextColor="WhiteSmoke"  
-                   HorizontalTextAlignment="Center" />
+                <!-- Status text (bound/updated in code-behind) -->
+                <Label x:Name="StatusLabel"  
+                       Text="{localization:Translate Initializing}"  
+                       FontSize="50"  
+                       FontAttributes="Bold"
+                       FontFamily="BarlowRegular"
+                       TextColor="WhiteSmoke"  
+                       HorizontalTextAlignment="Center" />
 
-            <Rectangle Fill="Transparent" HeightRequest="5" />
+                <Rectangle Fill="Transparent" HeightRequest="5" />
 
-            <!-- Status icon (green_check.png or red_ex.png) -->
-            <ImageButton x:Name="StatusImage1"
-             HeightRequest="100"
-             Aspect="AspectFit"
-             BackgroundColor="Transparent"
-             Clicked="OnStatusImageClicked"
-             HorizontalOptions="Center">
-                <VisualStateManager.VisualStateGroups>
-                    <VisualStateGroupList>
-                        <VisualStateGroup x:Name="CommonStates">
-                            <VisualState x:Name="PointerOver">
-                                <VisualState.Setters>
-                                    <Setter Property="BackgroundColor" Value="#0000" />
-                                    <Setter Property="Scale" Value="1.1" />
-                                </VisualState.Setters>
-                            </VisualState>
-                            <VisualState x:Name="Normal">
-                                <VisualState.Setters>
-                                    <Setter Property="BackgroundColor" Value="Transparent" />
-                                    <Setter Property="Scale" Value="1" />
-                                </VisualState.Setters>
-                            </VisualState>
-                        </VisualStateGroup>
-                    </VisualStateGroupList>
-                </VisualStateManager.VisualStateGroups>
-            </ImageButton>
+                <!-- Status icon (green_check.png or red_ex.png) -->
+                <ImageButton x:Name="StatusImage1"
+                 HeightRequest="100"
+                 Aspect="AspectFit"
+                 BackgroundColor="Transparent"
+                 Clicked="OnStatusImageClicked"
+                 HorizontalOptions="Center">
+                    <VisualStateManager.VisualStateGroups>
+                        <VisualStateGroupList>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Property="BackgroundColor" Value="#0000" />
+                                        <Setter Property="Scale" Value="1.1" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Normal">
+                                    <VisualState.Setters>
+                                        <Setter Property="BackgroundColor" Value="Transparent" />
+                                        <Setter Property="Scale" Value="1" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateGroupList>
+                    </VisualStateManager.VisualStateGroups>
+                </ImageButton>
+            </VerticalStackLayout>
+        </ContentView>
 
-        </VerticalStackLayout>
+        <!-- Connection Dialog -->
+        <Grid x:Name="ConnectionDialog" Grid.Row="1" VerticalOptions="Center" HorizontalOptions="Center" IsVisible="False">
+            <Frame BackgroundColor="Black"
+                   Padding="0"
+                   CornerRadius="10"
+                   WidthRequest="800"
+                   HeightRequest="320"
+                   HasShadow="False"
+                   BorderColor="Transparent">
+                <Grid RowDefinitions="Auto,*,Auto" ColumnDefinitions="*" BackgroundColor="LightGray">
+                    <!-- White Header Section -->
+                    <StackLayout Grid.Row="0"
+                                 BackgroundColor="White"
+                                 Padding="40,30"
+                                 Spacing="10">
+                        <Label Text="Connection Required"
+                               FontSize="60"
+                               FontAttributes="Bold"
+                               TextColor="Black"
+                               FontFamily="BarlowRegular"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="You must plug in PCAN USB"
+                               FontSize="30"
+                               TextColor="Black"
+                               FontFamily="BarlowRegular"
+                               HorizontalTextAlignment="Center" />
+                    </StackLayout>
 
+                    <!-- Gray Area: Black Bar + Centered OK Button -->
+                    <Grid Grid.Row="1" RowDefinitions="10,*" ColumnDefinitions="*">
+                        <!-- Black separator bar -->
+                        <BoxView Grid.Row="0" HeightRequest="10" BackgroundColor="Black" HorizontalOptions="Fill" />
+
+                        <!-- OK Button centered in remaining gray area -->
+                        <StackLayout Grid.Row="1"
+                                     VerticalOptions="Center"
+                                     HorizontalOptions="Center">
+                            <Button Text="OK"
+                                    FontFamily="BarlowRegular"
+                                    BackgroundColor="Black"
+                                    TextColor="WhiteSmoke"
+                                    FontSize="28"
+                                    WidthRequest="200"
+                                    HeightRequest="60"
+                                    CornerRadius="30"
+                                    HorizontalOptions="Center"
+                                    Clicked="OnConnectionDialogOkClicked" />
+                        </StackLayout>
+                    </Grid>
+
+                    <!-- (No changes to the footer row) -->
+                </Grid>
+            </Frame>
+        </Grid>
     </Grid>  
 </ContentPage>
