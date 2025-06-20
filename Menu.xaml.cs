@@ -37,17 +37,17 @@ public partial class Menu : ContentPage
 
     private async void OnBoomAngleSensorClicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new BAS());
+        await Navigation.PushAsync(new BAS(_localizationResourceManager));
     }
 
     private async void OnFluidTankLevelSensorClicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new FTLS());
+        await Navigation.PushAsync(new FTLS(_localizationResourceManager));
     }
 
     private async void OnKZValveClicked(object sender, EventArgs e)
     {
-        await Navigation.PushAsync(new KZV());
+        await Navigation.PushAsync(new KZV(_localizationResourceManager));
     }
 
     private void OnPointerEntered(object sender, EventArgs e) 
