@@ -8,9 +8,9 @@ namespace PCANAppM.Services
     public class CanBusService : ICanBusService, IDisposable
     {
         const int PollIntervalMs = 500;
-        readonly Timer      _pollTimer;
-        PCAN_USB?           _device;
-        ushort              _handle;
+        readonly Timer _pollTimer;
+        PCAN_USB?      _device;
+        ushort         _handle;
 
         public bool   IsConnected { get; private set; }
         public string? DeviceName { get; private set; }
@@ -18,24 +18,18 @@ namespace PCANAppM.Services
 
         public CanBusService(IDispatcher dispatcher)
         {
-            // Poll for hot-plug every half second
+            // Poll for device presence
             _pollTimer = new Timer(PollIntervalMs) { AutoReset = true };
-            _pollTimer.Elapsed += (_, _) => CheckDevice(dispatcher);
+            _pollTimer.Elapsed += (_, _) => CheckAndInit(dispatcher);
             _pollTimer.Start();
         }
 
-        void CheckDevice(IDispatcher dispatcher)
+        void CheckAndInit(IDispatcher dispatcher)
         {
             var devices = PCAN_USB.GetUSBDevices();
             bool present = devices.Count > 0;
 
-            // If unplugged, tear down
-            if (!present && IsConnected)
-            {
-                Teardown();
-            }
-
-            // If newly plugged, initialize once
+            // Only initialize once, when we first see the hardware
             if (present && !IsConnected)
             {
                 try
@@ -46,43 +40,43 @@ namespace PCANAppM.Services
                     var status = _device.InitializeCAN(_handle, "250 kbit/s", true);
                     if (status == TPCANStatus.PCAN_ERROR_OK)
                     {
-                        // Route incoming frames to the UI thread
+                        // Route incoming frames onto the UI thread
                         _device.MessageReceived += pkt =>
                             dispatcher.Dispatch(() => FrameReceived?.Invoke(pkt));
                         IsConnected = true;
                     }
                     else
                     {
-                        Teardown();
+                        // initialization failed—clean up immediately
+                        _device.Dispose();
+                        _device = null;
                     }
                 }
                 catch
                 {
-                    Teardown();
+                    _device?.Dispose();
+                    _device = null;
                 }
             }
-        }
 
-        void Teardown()
-        {
-            IsConnected = false;
-            _device?.Dispose();
-            _device = null;
+            // <no unplug-handling branch at all>
         }
 
         public void SendFrame(uint id, byte[] data, bool extended)
         {
             if (IsConnected && _device is not null)
-            {
                 _device.WriteFrame(id, data.Length, data, extended);
-            }
         }
 
         public void Dispose()
         {
+            // stop polling
             _pollTimer.Stop();
             _pollTimer.Dispose();
-            Teardown();
+
+            // if you still want to release on app exit, do it here:
+            _device?.Dispose();
+            _device = null;
         }
     }
 }
