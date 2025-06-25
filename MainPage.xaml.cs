@@ -1,16 +1,10 @@
 using System;
-using System.Timers;
+using System.ComponentModel;
 using Microsoft.Maui.Controls;
-using Timer = System.Timers.Timer;
-using LocalizationResourceManager.Maui;
 using System.Globalization;
+using LocalizationResourceManager.Maui;
 using PCANAppM.Resources.Languages;
-
-#if WINDOWS
 using PCANAppM.Services;
-using PCANAppM.Platforms.Windows;
-using System.Timers; 
-#endif
 
 namespace PCANAppM
 {
@@ -18,54 +12,54 @@ namespace PCANAppM
     public partial class MainPage : ContentPage
     {
         private readonly ILocalizationResourceManager _localizationResourceManager;
-        private readonly ICanBusService _canBusService;
-        private Timer _deviceCheckTimer;
-        private string _lastStatus = "";
-        private bool _isDeviceConnected;
-        private bool _sideMenuFirstOpen = true;
-        private bool _isLanguageGlowing = false;
-        private bool _isPointerOverLanguageButton = false;
+        private readonly ICanBusService             _canBusService;
+        private string                               _lastStatus = "";
+        private bool                                 _isDeviceConnected;
+        private bool                                 _sideMenuFirstOpen = true;
 
         public MainPage(
             ILocalizationResourceManager localizationResourceManager,
-            ICanBusService canBusService
+            ICanBusService               canBusService
         )
         {
             _localizationResourceManager = localizationResourceManager;
-            _canBusService = canBusService;
+            _canBusService               = canBusService;
             InitializeComponent();
+
+            // 1) Subscribe to live connection‐status changes
+            _canBusService.PropertyChanged += OnBusPropertyChanged;
         }
 
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            StartDeviceCheckTimer();
+            // 2) Set initial UI state
+            UpdateDeviceStatus();
         }
 
-        private void StartDeviceCheckTimer()
+        private void OnBusPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            _deviceCheckTimer = new Timer(500);
-            _deviceCheckTimer.Elapsed += (_, _) => UpdateDeviceStatus();
-            _deviceCheckTimer.AutoReset = true;
-            _deviceCheckTimer.Start();
+            if (e.PropertyName == nameof(ICanBusService.IsConnected))
+                UpdateDeviceStatus();
         }
 
         private void UpdateDeviceStatus()
         {
             bool connected = _canBusService.IsConnected;
-            string status = connected
+            string status  = connected
                 ? $"{_canBusService.DeviceName}  {_localizationResourceManager["Status2"]}"
                 : _localizationResourceManager["Status1"];
-            string imageSource = connected ? "green_check.png" : "red_ex.png";
+            string icon    = connected ? "green_check.png" : "red_ex.png";
             _isDeviceConnected = connected;
 
+            // only update UI when it actually changed
             if (status != _lastStatus)
             {
                 _lastStatus = status;
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    StatusLabel.Text = status;
-                    StatusImage1.Source = imageSource;
+                    StatusLabel.Text   = status;
+                    StatusImage1.Source = icon;
                 });
             }
         }
@@ -73,17 +67,19 @@ namespace PCANAppM
         private async void OnStatusImageClicked(object sender, EventArgs e)
         {
             if (_isDeviceConnected)
+            {
                 await Navigation.PushAsync(new Menu(_localizationResourceManager, _canBusService));
+            }
             else
             {
                 ConnectionDialog.IsVisible = true;
-                MainContent.IsVisible = false;
+                MainContent.IsVisible      = false;
             }
         }
 
         private void OnConnectionDialogOkClicked(object sender, EventArgs e)
         {
-            MainContent.IsVisible = true;
+            MainContent.IsVisible      = true;
             ConnectionDialog.IsVisible = false;
         }
 
@@ -102,7 +98,7 @@ namespace PCANAppM
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible = true;
+            SideMenu.IsVisible    = true;
             SideMenuDim.IsVisible = true;
 
             if (SideMenu.Width == 0)
@@ -129,14 +125,14 @@ namespace PCANAppM
         private async void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible = false;
+            SideMenu.IsVisible    = false;
             SideMenuDim.IsVisible = false;
         }
 
         private async void OnMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
+            SideMenu.IsVisible    = false;
             SideMenuDim.IsVisible = false;
             await Navigation.PushAsync(new Menu(_localizationResourceManager, _canBusService));
         }
@@ -144,7 +140,7 @@ namespace PCANAppM
         private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
+            SideMenu.IsVisible    = false;
             SideMenuDim.IsVisible = false;
             await Navigation.PushAsync(new BAS(_localizationResourceManager, _canBusService));
         }
@@ -152,7 +148,7 @@ namespace PCANAppM
         private async void OnKzValveMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
+            SideMenu.IsVisible    = false;
             SideMenuDim.IsVisible = false;
             await Navigation.PushAsync(new KZV(_localizationResourceManager, _canBusService));
         }
@@ -160,7 +156,7 @@ namespace PCANAppM
         private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
+            SideMenu.IsVisible    = false;
             SideMenuDim.IsVisible = false;
             await Navigation.PushAsync(new FTLS(_localizationResourceManager, _canBusService));
         }
