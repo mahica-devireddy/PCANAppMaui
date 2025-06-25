@@ -52,36 +52,94 @@ namespace PCANAppM
             UpdateDeviceStatus();
         }
 
-        private void UpdateDeviceStatus()
-        {
-#if WINDOWS
-            var devices = PCAN_USB.GetUSBDevices();
-            string status;
-            string imageSource;
-            if (devices != null && devices.Count > 0)
-            {
-                status = devices[0] + "  " + _localizationResourceManager["Status2"];
-                imageSource = "green_check.png";
-                isDeviceConnected = true;
-            }
-            else
-            {
-                status = _localizationResourceManager["Status1"];
-                imageSource = "red_ex.png";
-                isDeviceConnected = false;
-            }
+//         private void UpdateDeviceStatus()
+//         {
+// #if WINDOWS
+//             var devices = PCAN_USB.GetUSBDevices();
+//             string status;
+//             string imageSource;
+//             if (devices != null && devices.Count > 0)
+//             {
+//                 status = devices[0] + "  " + _localizationResourceManager["Status2"];
+//                 imageSource = "green_check.png";
+//                 isDeviceConnected = true;
+//             }
+//             else
+//             {
+//                 status = _localizationResourceManager["Status1"];
+//                 imageSource = "red_ex.png";
+//                 isDeviceConnected = false;
+//             }
 
-            if (status != lastStatus)
-            {
-                lastStatus = status;
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    StatusLabel.Text = status;
-                    StatusImage1.Source = imageSource;
-                });
-            }
-#endif
-        }
+//             if (status != lastStatus)
+//             {
+//                 lastStatus = status;
+//                 MainThread.BeginInvokeOnMainThread(() =>
+//                 {
+//                     StatusLabel.Text = status;
+//                     StatusImage1.Source = imageSource;
+//                 });
+//             }
+// #endif
+//         }
+         private void UpdateDeviceStatus()
+ {
+-    // 1) Poll physical USB devices
+-    var devices = PCAN_USB.GetUSBDevices();
+-    bool physicallyPresent = devices.Count > 0;
+-
+-    // 2) If it just got plugged in, re-initialize the shared service
+-    if (physicallyPresent && !PCanService.IsStarted)
+-    {
+-        PCanService.TryInitialize();
+-    }
+-
+-    // 3) Decide “connected” by whether the bus is actually started
+-    bool connected = PCanService.IsStarted;
++    // 1) Poll the list of PCAN USB devices
++    var devices = PCAN_USB.GetUSBDevices();
++    bool physicallyPresent = devices.Count > 0;
++
++    // 2) If it’s plugged in but our shared service isn’t started, try to start it
++    if (physicallyPresent && !PCanService.IsStarted)
++        PCanService.TryInitialize();
++
++    // 3) We’re only “connected” if the hardware’s present *and* the service is started
++    bool connected = physicallyPresent && PCanService.IsStarted;
+
+     // 4) Build your status text + icon
+-    string status, imageSource;
+-    if (connected)
+-    {
+-        // show the real device string
+-        status       = $"{PCanService.DeviceName}  {_localizationResourceManager["Status2"]}";
+-        imageSource  = "green_check.png";
+-        _isDeviceConnected = true;
+-    }
+-    else
+-    {
+-        status       = _localizationResourceManager["Status1"];
+-        imageSource  = "red_ex.png";
+-        _isDeviceConnected = false;
+-    }
++    string status   = connected
++        ? $"{devices[0]}  {_localizationResourceManager["Status2"]}"
++        : _localizationResourceManager["Status1"];
++    string imageSource = connected ? "green_check.png" : "red_ex.png";
++    _isDeviceConnected = connected;
+
+     // 5) Only update UI when it really changed
+     if (status != _lastStatus)
+     {
+         _lastStatus = status;
+         MainThread.BeginInvokeOnMainThread(() =>
+         {
+             StatusLabel.Text    = status;
+             StatusImage1.Source = imageSource;
+         });
+     }
+ }
+
 
         private async void OnStatusImageClicked(object sender, EventArgs e)
         {
