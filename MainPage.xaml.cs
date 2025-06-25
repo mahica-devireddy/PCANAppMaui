@@ -5,28 +5,34 @@ using Timer = System.Timers.Timer;
 using LocalizationResourceManager.Maui;
 using System.Globalization;
 using PCANAppM.Resources.Languages;
+
+#if WINDOWS
 using PCANAppM.Services;
+using PCANAppM.Platforms.Windows;
+using System.Timers; 
+#endif
 
 namespace PCANAppM
 {
+#if WINDOWS
     public partial class MainPage : ContentPage
     {
         private readonly ILocalizationResourceManager _localizationResourceManager;
-        private readonly ICanBusService             _canBusService;
-        private Timer                                _deviceCheckTimer;
-        private string                               _lastStatus = "";
-        private bool                                 _isDeviceConnected;
-        private bool                                 _sideMenuFirstOpen = true;
-        private bool                                 _isLanguageGlowing = false;
-        private bool                                 _isPointerOverLanguageButton = false;
+        private readonly ICanBusService _canBusService;
+        private Timer _deviceCheckTimer;
+        private string _lastStatus = "";
+        private bool _isDeviceConnected;
+        private bool _sideMenuFirstOpen = true;
+        private bool _isLanguageGlowing = false;
+        private bool _isPointerOverLanguageButton = false;
 
         public MainPage(
             ILocalizationResourceManager localizationResourceManager,
-            ICanBusService               canBusService
+            ICanBusService canBusService
         )
         {
             _localizationResourceManager = localizationResourceManager;
-            _canBusService               = canBusService;
+            _canBusService = canBusService;
             InitializeComponent();
         }
 
@@ -58,7 +64,7 @@ namespace PCANAppM
                 _lastStatus = status;
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    StatusLabel.Text   = status;
+                    StatusLabel.Text = status;
                     StatusImage1.Source = imageSource;
                 });
             }
@@ -71,13 +77,13 @@ namespace PCANAppM
             else
             {
                 ConnectionDialog.IsVisible = true;
-                MainContent.IsVisible      = false;
+                MainContent.IsVisible = false;
             }
         }
 
         private void OnConnectionDialogOkClicked(object sender, EventArgs e)
         {
-            MainContent.IsVisible      = true;
+            MainContent.IsVisible = true;
             ConnectionDialog.IsVisible = false;
         }
 
@@ -96,7 +102,7 @@ namespace PCANAppM
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible    = true;
+            SideMenu.IsVisible = true;
             SideMenuDim.IsVisible = true;
 
             if (SideMenu.Width == 0)
@@ -123,14 +129,14 @@ namespace PCANAppM
         private async void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
         }
 
         private async void OnMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
             await Navigation.PushAsync(new Menu(_localizationResourceManager, _canBusService));
         }
@@ -138,7 +144,7 @@ namespace PCANAppM
         private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
             await Navigation.PushAsync(new BAS(_localizationResourceManager, _canBusService));
         }
@@ -146,7 +152,7 @@ namespace PCANAppM
         private async void OnKzValveMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
             await Navigation.PushAsync(new KZV(_localizationResourceManager, _canBusService));
         }
@@ -154,7 +160,7 @@ namespace PCANAppM
         private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
             await Navigation.PushAsync(new FTLS(_localizationResourceManager, _canBusService));
         }
@@ -165,4 +171,5 @@ namespace PCANAppM
         public static string CurrentLanguage { get; set; } = "en";
         public static bool IsSpanish => CurrentLanguage == "es";
     }
+#endif
 }
