@@ -1,8 +1,15 @@
 using Peak.Can.Basic;
 using System;
+using PCANAppM;
+using System;
+
+#if WINDOWS
+using PCANAppM.Platforms.Windows;
+#endif
 
 namespace PCANAppM.Services
 {
+#if WINDOWS
     public interface ICanBusService
     {
         /// <summary>True when the PCAN USB is plugged in AND initialized.</summary>
@@ -20,4 +27,5 @@ namespace PCANAppM.Services
         /// <param name="extended">True for extended ID (> 0x7FF).</param>
         void SendFrame(uint id, byte[] data, bool extended);
     }
+#endif
 }
