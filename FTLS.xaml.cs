@@ -3,7 +3,8 @@ using System.Globalization;
 using PCANAppM.Resources.Languages;
 using Peak.Can.Basic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
+using System.Globalization;
+using PCANAppM;
 
 #if WINDOWS
 using PCANAppM.Platforms.Windows;
@@ -13,13 +14,16 @@ namespace PCANAppM;
 
 public partial class FTLS : ContentPage
 {
-    private string? _currentCanId1 = null;
+    private string? _currentCanId = null;
     private string? _pendingNewCanId1 = null;
     private readonly ILocalizationResourceManager _localizationResourceManager;
 #if WINDOWS
     private PCAN_USB? _pcanUsb;
     private ushort _currentHandle;
     private bool _isStarted = false;
+    private bool _sideMenuFirstOpen = true;
+    private bool _isFTLSConnected = false;
+    private System.Timers.Timer? _connectionTimeoutTimer;
 #endif
 
     public FTLS(ILocalizationResourceManager localizationResourceManager)
@@ -55,7 +59,6 @@ public partial class FTLS : ContentPage
 #endif
     }
 
-
 #if WINDOWS
     private void SubscribeToPcanUsbEvents()
     {
@@ -66,14 +69,40 @@ public partial class FTLS : ContentPage
 
     private void OnCanMessageReceived(PCAN_USB.Packet packet)
     {
+        uint canId = packet.Id;
+        uint pgn = (canId >> 8) & 0xFFFF;
+
+        if (pgn == 0xFF52)
+        {
+            FTLSConnectionState.IsConnected = true;
+            ResetConnectionTimeout();
+        }
+
         var idHex = $"0x{packet.Id:X}";
         string lastTwo = idHex.Length >= 2 ? idHex.Substring(idHex.Length - 2) : idHex;
-        _currentCanId1 = lastTwo;
-
-        MainThread.BeginInvokeOnMainThread(() =>
+        if (int.TryParse(lastTwo, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int canIdInt))
         {
-            UpdateLatestCanIdLabel1(lastTwo);
-        });
+            _currentCanId = canIdInt.ToString();
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                UpdateLatestCanIdLabel1(_currentCanId);
+            });
+        }
+    }
+
+    private void ResetConnectionTimeout()
+    {
+#if WINDOWS
+        _connectionTimeoutTimer?.Stop();
+        _connectionTimeoutTimer = new System.Timers.Timer(2000); // 2 seconds
+        _connectionTimeoutTimer.Elapsed += (s, e) =>
+        {
+            FTLSConnectionState.IsConnected = false;
+            _connectionTimeoutTimer?.Stop();
+        };
+        _connectionTimeoutTimer.AutoReset = false;
+        _connectionTimeoutTimer.Start();
+#endif
     }
 
     private void OnPcanFeedback(string message)
@@ -89,17 +118,19 @@ public partial class FTLS : ContentPage
 
     private async void OnSetClicked(object sender, EventArgs e)
     {
-        var newCanId = NewCanIdEntry2.Text?.Trim();
-        if (string.IsNullOrEmpty(newCanId) || newCanId.Length > 2 || !int.TryParse(newCanId, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
+        var newCanIdText = NewCanIdEntry2.Text?.Trim();
+        if (string.IsNullOrEmpty(newCanIdText) || !int.TryParse(newCanIdText, out int newCanIdInt) || newCanIdInt < 0 || newCanIdInt > 255)
         {
-            await DisplayAlert("Invalid Input", "Please enter a valid 2-digit hex CAN ID.", "OK");
+            await DisplayAlert("Invalid Input", "Please enter a valid CAN ID (0-255).", "OK");
             return;
         }
 
-        ConfirmText2.Text = $"Set The CAN ID to {newCanId.ToUpper()}";
+        ConfirmText2.Text = $"Set The CAN ID to {newCanIdInt}";
         SetCanIdView2.IsVisible = false;
         ConfirmCanIdView2.IsVisible = true;
-        _pendingNewCanId1 = newCanId.ToUpper();
+        _pendingNewCanId1 = newCanIdInt.ToString();
+
+        NewCanIdEntry2.Text = string.Empty;
     }
 
     private async void OnConfirmClicked(object sender, EventArgs e)
@@ -107,14 +138,19 @@ public partial class FTLS : ContentPage
 #if WINDOWS
         if (string.IsNullOrEmpty(_pendingNewCanId1)) return;
 
-        string currentId = _currentCanId1 ?? "00";
-        string newId = _pendingNewCanId1.PadLeft(2, '0');
+        // Use the current CAN ID as integer, fallback to 0
+        int currentIdInt = 0;
+        int.TryParse(_currentCanId, out currentIdInt);
+
+        int newIdInt = int.Parse(_pendingNewCanId1);
+
+        // Convert to hex string for protocol
+        string currentIdHex = currentIdInt.ToString("X2");
+        string newIdHex = newIdInt.ToString("X2");
 
         // Change FTLS CAN ID using the new protocol
-        await ChangeFtlsCanIdAsync(currentId, newId);
+        await ChangeFtlsCanIdAsync(currentIdHex, newIdHex);
 
-        _currentCanId1 = newId;
-        UpdateLatestCanIdLabel1(newId);
         ConfirmCanIdView2.IsVisible = false;
         InitialFtlsView.IsVisible = true;
 #endif
@@ -150,13 +186,13 @@ public partial class FTLS : ContentPage
             return;
 
         uint canId = uint.Parse(canIdHex, NumberStyles.HexNumber);
-        
+
         var buffer = new byte[8];
         Array.Copy(data, buffer, Math.Min(data.Length, 8));
 
         _pcanUsb.WriteFrame(
-            canId, 
-            8, 
+            canId,
+            8,
             buffer,
             canId > 0x7FF
         );
@@ -180,6 +216,39 @@ public partial class FTLS : ContentPage
     {
         LatestCanIdLabel2.Text = _localizationResourceManager["CurrentFTLS"] + " " + id;
     }
+#if WINDOWS
+    private async void OnFTLSStatusClicked(object sender, EventArgs e)
+    {
+        await ShowFTLSConnectionStatusAsync();
+    }
+
+    private async void OnFTLSButtonClicked(object sender, EventArgs e)
+    {
+        // Determine connection state (replace with your actual check)
+        bool isFTLSConnected = _isFTLSConnected;
+        await Navigation.PushAsync(new FTLSConnectionStatusPage(isFTLSConnected));
+    }
+
+    private async Task ShowFTLSConnectionStatusAsync()
+    {
+        string message = _isFTLSConnected
+            ? "Fluid Tank Level Sensor is CONNECTED."
+            : "Fluid Tank Level Sensor is NOT CONNECTED.";
+        await DisplayAlert("Fluid Tank Level Sensor Connection", message, "OK");
+    }
+#endif
+
+    private async void OnCheckConnectionClicked(object sender, EventArgs e)
+    {
+#if WINDOWS
+        bool isConnected = FTLSConnectionState.IsConnected;
+        string message = isConnected
+            ? "Fluid Tank Level Sensor is CONNECTED."
+            : "Fluid Tank Level Sensor is NOT CONNECTED.";
+        await DisplayAlert("Connection Status", message, "OK");
+#endif
+    }
+
 
     private void NewCanIdEntry_Focused1(object sender, FocusEventArgs e)
     {
@@ -190,6 +259,85 @@ public partial class FTLS : ContentPage
     {
         LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
         _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
+    }
+    private void OnOshkoshLogoClicked(object sender, EventArgs e)
+    {
+        SideMenu.IsVisible = true;
+        SideMenuDim.IsVisible = true;
+
+        if (SideMenu.Width == 0)
+        {
+            // Wait for the menu to be measured, then animate
+            SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
+        }
+        else
+        {
+            AnimateSideMenuIn();
+        }
+    }
+
+    private async void SideMenu_SizeChangedAnimateIn(object? sender, EventArgs e)
+    {
+        if (SideMenu.Width > 0)
+        {
+            SideMenu.SizeChanged -= SideMenu_SizeChangedAnimateIn;
+            await AnimateSideMenuIn();
+        }
+    }
+
+    private async Task AnimateSideMenuIn()
+    {
+        SideMenu.TranslationX = -SideMenu.Width;
+        await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
+    }
+
+#if WINDOWS
+    private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
+    {
+        SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
+        _sideMenuFirstOpen = false;
+        SideMenu.TranslationX = -SideMenu.Width;
+        await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
+    }
+#endif
+
+    private async void OnCloseSideMenuClicked(object sender, EventArgs e)
+    {
+        await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn); // Slide out
+        SideMenu.IsVisible = false;
+        SideMenuDim.IsVisible = false;
+    }
+
+    private async void OnMenuClicked(object sender, EventArgs e)
+    {
+        await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+        SideMenu.IsVisible = false;
+        SideMenuDim.IsVisible = false;
+        await Navigation.PushAsync(new Menu(_localizationResourceManager));
+    }
+
+    private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
+    {
+        await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+        SideMenu.IsVisible = false;
+        SideMenuDim.IsVisible = false;
+        await Navigation.PushAsync(new BAS(_localizationResourceManager));
+    }
+
+    private async void OnKzValveMenuClicked(object sender, EventArgs e)
+    {
+        await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+        SideMenu.IsVisible = false;
+        SideMenuDim.IsVisible = false;
+        await Navigation.PushAsync(new KZV(_localizationResourceManager));
+    }
+
+    private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
+    {
+        await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+        SideMenu.IsVisible = false;
+        SideMenuDim.IsVisible = false;
+        await Navigation.PushAsync(new FTLS(_localizationResourceManager));
     }
 }
 
