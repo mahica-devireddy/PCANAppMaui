@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using LocalizationResourceManager.Maui;
 using System.Globalization;
 using PCANAppM.Resources.Languages;
+using PCANAppM;
+
 
 #if WINDOWS
 using PCANAppM.Platforms.Windows;
@@ -17,6 +19,7 @@ namespace PCANAppM;
 public partial class Menu : ContentPage
 {
     private readonly ILocalizationResourceManager _localizationResourceManager;
+    private bool _sideMenuFirstOpen = true;
 
     public Menu(ILocalizationResourceManager localizationResourceManager)
     {
@@ -64,4 +67,90 @@ public partial class Menu : ContentPage
             element.ScaleTo(1.0, 100);
         }
     }
+
+    private async void MenuButton_Pressed(object sender, EventArgs e)
+    {
+        if (sender is Button btn)
+        {
+            // Animate to 0.95 scale over 60ms (shorter duration)
+            await btn.ScaleTo(0.95, 20, Easing.SinIn);
+        }
+    }
+
+    private async void MenuButton_Released(object sender, EventArgs e)
+    {
+        if (sender is Button btn)
+        {
+            // Animate back to normal scale over 60ms
+            await btn.ScaleTo(1, 20, Easing.SinOut);
+        }
+    }
+
+
+    private async void OnNextButtonClicked(object sender, EventArgs e)
+    {
+        await Navigation.PushAsync(new Menu(_localizationResourceManager));
+    }
+
+    private void StatusImage1_Clicked(object sender, EventArgs e)
+    {
+
+    }
+
+    //SIDE MENU LOGIC
+    private void OnOshkoshLogoClicked(object sender, EventArgs e)
+    {
+        SideMenu.IsVisible = true;
+        SideMenuDim.IsVisible = true;
+
+        if (SideMenu.Width == 0)
+        {
+            // Wait for the menu to be measured, then animate
+            SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
+        }
+        else
+        {
+            AnimateSideMenuIn();
+        }
+    }
+
+    private async void SideMenu_SizeChangedAnimateIn(object? sender, EventArgs e)
+    {
+        if (SideMenu.Width > 0)
+        {
+            SideMenu.SizeChanged -= SideMenu_SizeChangedAnimateIn;
+            await AnimateSideMenuIn();
+        }
+    }
+
+    private async Task AnimateSideMenuIn()
+    {
+        SideMenu.TranslationX = -SideMenu.Width;
+        await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
+    }
+
+    private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
+    {
+        SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
+        _sideMenuFirstOpen = false;
+        SideMenu.TranslationX = -SideMenu.Width;
+        await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
+    }
+
+    private async void OnCloseSideMenuClicked(object sender, EventArgs e)
+    {
+        await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn); // Slide out
+        SideMenu.IsVisible = false;
+        SideMenuDim.IsVisible = false;
+    }
+
+    private async void OnMenuClicked(object sender, EventArgs e)
+    {
+        await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+        SideMenu.IsVisible = false;
+        SideMenuDim.IsVisible = false;
+        await Navigation.PushAsync(new Menu(_localizationResourceManager));
+    }
+
+
 }
