@@ -8,24 +8,31 @@ using Microsoft.Maui.Controls;
 using PCANAppM.Services;
 using PCANAppM.Resources.Languages;
 
+#if WINDOWS
+using PCANAppM.Services;
+using PCANAppM.Platforms.Windows;
+using System.Timers; 
+#endif
+
 namespace PCANAppM
 {
+#if WINDOWS
     public partial class BAS : ContentPage
     {
         private string? _currentCanId1;
         private string? _pendingNewCanId1;
         private readonly ILocalizationResourceManager _localizationResourceManager;
-        private readonly ICanBusService             _canBusService;
-        private Timer?                               _connectionTimeoutTimer;
-        private bool                                 _sideMenuFirstOpen = true;
+        private readonly ICanBusService _canBusService;
+        private System.Timers.Timer? _connectionTimeoutTimer;
+        private bool _sideMenuFirstOpen = true;
 
         public BAS(
             ILocalizationResourceManager localizationResourceManager,
-            ICanBusService               canBusService
+            ICanBusService canBusService
         )
         {
             _localizationResourceManager = localizationResourceManager;
-            _canBusService               = canBusService;
+            _canBusService = canBusService;
             InitializeComponent();
         }
 
@@ -66,7 +73,7 @@ namespace PCANAppM
         private void ResetConnectionTimeout()
         {
             _connectionTimeoutTimer?.Stop();
-            _connectionTimeoutTimer = new Timer(2000) { AutoReset = false };
+            _connectionTimeoutTimer = new System.Timers.Timer(2000) { AutoReset = false };
             _connectionTimeoutTimer.Elapsed += (s, e) =>
             {
                 ASConnectionState.IsConnected = false;
@@ -77,7 +84,7 @@ namespace PCANAppM
 
         private async void OnSetCanIdClicked(object sender, EventArgs e)
         {
-            SetCanIdView1.IsVisible  = true;
+            SetCanIdView1.IsVisible = true;
             InitialBasView.IsVisible = false;
         }
 
@@ -97,11 +104,11 @@ namespace PCANAppM
                 return;
             }
 
-            ConfirmText1.Text           = $"Set The CAN ID to {newCanIdInt}";
-            SetCanIdView1.IsVisible     = false;
+            ConfirmText1.Text = $"Set The CAN ID to {newCanIdInt}";
+            SetCanIdView1.IsVisible = false;
             ConfirmCanIdView1.IsVisible = true;
-            _pendingNewCanId1           = newCanIdInt.ToString();
-            NewCanIdEntry1.Text         = string.Empty;
+            _pendingNewCanId1 = newCanIdInt.ToString();
+            NewCanIdEntry1.Text = string.Empty;
         }
 
         private async void OnConfirmClicked(object sender, EventArgs e)
@@ -113,45 +120,45 @@ namespace PCANAppM
             var newIdInt = int.Parse(_pendingNewCanId1);
 
             var currentIdHex = currentIdInt.ToString("X2");
-            var newIdHex     = newIdInt.ToString("X2");
+            var newIdHex = newIdInt.ToString("X2");
 
             // Send your four messages via the shared service:
             _canBusService.SendFrame(
                 uint.Parse($"18EA{currentIdHex}00", NumberStyles.HexNumber),
-                new byte[]{0x00,0xEF,0x00,0x00,0x00,0x00,0x00,0x00},
+                new byte[] { 0x00, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
                 extended: true
             );
             _canBusService.SendFrame(
                 uint.Parse($"18EF{currentIdHex}00", NumberStyles.HexNumber),
-                new byte[]{0x06, Convert.ToByte(newIdHex,16),0x00,0xFF,0xFF,0xFF,0xFF,0xFF},
+                new byte[] { 0x06, Convert.ToByte(newIdHex, 16), 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF },
                 extended: true
             );
             _canBusService.SendFrame(
                 uint.Parse($"18EA{currentIdHex}00", NumberStyles.HexNumber),
-                new byte[]{0x00,0xEF,0x00,0x00,0x00,0x00,0x00,0x00},
+                new byte[] { 0x00, 0xEF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
                 extended: true
             );
             _canBusService.SendFrame(
                 uint.Parse($"18EF{currentIdHex}00", NumberStyles.HexNumber),
-                new byte[]{0xFA,0x73,0x61,0x76,0x65,0x00,0x00,0x00},
+                new byte[] { 0xFA, 0x73, 0x61, 0x76, 0x65, 0x00, 0x00, 0x00 },
                 extended: true
             );
 
             ConfirmCanIdView1.IsVisible = false;
-            InitialBasView.IsVisible    = true;
+            InitialBasView.IsVisible = true;
         }
 
         private void OnCancelConfirmClicked1(object sender, EventArgs e)
         {
             ConfirmCanIdView1.IsVisible = false;
-            InitialBasView.IsVisible    = true;
+            InitialBasView.IsVisible = true;
         }
 
         private void OnExitClicked(object sender, EventArgs e)
         {
-            SetCanIdView1.IsVisible      = false;
-            InitialBasView.IsVisible     = true;
-            ConfirmCanIdView1.IsVisible  = false;
+            SetCanIdView1.IsVisible = false;
+            InitialBasView.IsVisible = true;
+            ConfirmCanIdView1.IsVisible = false;
         }
 
         private void UpdateLatestCanIdLabel1(string id)
@@ -215,7 +222,7 @@ namespace PCANAppM
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible    = true;
+            SideMenu.IsVisible = true;
             SideMenuDim.IsVisible = true;
             if (SideMenu.Width == 0)
                 SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
@@ -241,7 +248,7 @@ namespace PCANAppM
         private async void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
         }
     }
@@ -249,7 +256,8 @@ namespace PCANAppM
     public class CanMessageViewModel1
     {
         public string Direction { get; set; } = "";
-        public string Id        { get; set; } = "";
-        public string Data      { get; set; } = "";
+        public string Id { get; set; } = "";
+        public string Data { get; set; } = "";
     }
+#endif
 }
