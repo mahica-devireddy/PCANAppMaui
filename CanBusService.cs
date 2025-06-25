@@ -1,128 +1,104 @@
-using Microsoft.Maui.Dispatching;
-using Peak.Can.Basic;
-using System;
-using System.ComponentModel;
-
-#if WINDOWS
-using PCANAppM.Services;
-using PCANAppM.Platforms.Windows;
-using System.Timers; 
-#endif
-using System.Timers;
-
-namespace PCANAppM.Services
+public class CanBusService : ICanBusService, INotifyPropertyChanged, IDisposable
 {
-#if WINDOWS
-    public class CanBusService : ICanBusService, INotifyPropertyChanged, IDisposable
+    const int PollMs = 500;
+    const int DebounceForUnplug = 3;
+
+    readonly Timer _poll;
+    readonly IDispatcher _dispatcher;
+
+    PCAN_USB? _dev;
+    ushort    _h;
+    int       _absentCount;
+
+    bool _isConn;
+    public bool IsConnected { /* same as before */ }
+    public string? DeviceName { get; private set; }
+    public event Action<PCAN_USB.Packet>? FrameReceived;
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public CanBusService(IDispatcher dispatcher)
     {
-        const int PollMs = 500;
-        const int DebounceCountNeeded = 3;  // ~1.5s
+        _dispatcher = dispatcher;
+        _poll = new Timer(PollMs) { AutoReset = true };
+        _poll.Elapsed += (_,__) => Check();
+        _poll.Start();
+    }
 
-        readonly System.Timers.Timer _poll;
-        readonly IDispatcher _dispatcher;
+    void Check()
+    {
+        var devs = PCAN_USB.GetUSBDevices();
+        bool present = devs.Count > 0;
 
-        int _consecutivePresent;
-        int _consecutiveAbsent;
-
-        PCAN_USB? _dev;
-        ushort _h;
-
-        bool _isConn;
-        public bool IsConnected
+        if (present)
         {
-            get => _isConn;
-            private set
-            {
-                if (_isConn == value) return;
-                _isConn = value;
-                PropertyChanged?.Invoke(this, new(nameof(IsConnected)));
-            }
+            _absentCount = 0;
+            if (_dev == null)
+                TryInit(devs[0]);
         }
-
-        public string? DeviceName { get; private set; }
-        public event Action<PCAN_USB.Packet>? FrameReceived;
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        public CanBusService(IDispatcher disp)
+        else
         {
-            _dispatcher = disp;
-            _poll = new System.Timers.Timer(PollMs) { AutoReset = true };
-            _poll.Elapsed += (_, __) => Check();
-            _poll.Start();
+            _absentCount++;
+            if (_absentCount >= DebounceForUnplug && _dev != null)
+                Teardown();
         }
+    }
 
-        void Check()
+    void TryInit(string name)
+    {
+        try
         {
-            var devs = PCAN_USB.GetUSBDevices();
-            bool present = devs.Count > 0;
+            DeviceName = name;
+            _h = PCAN_USB.DecodePEAKHandle(name);
+            _dev = new PCAN_USB();
+            var st = _dev.InitializeCAN(_h, "250 kbit/s", true);
 
-            if (present)
+            if (st == TPCANStatus.PCAN_ERROR_OK)
             {
-                _consecutivePresent++;
-                _consecutiveAbsent = 0;
+                _dev.MessageReceived += OnPlatformMessageReceived;
+                IsConnected = true;
             }
             else
             {
-                _consecutiveAbsent++;
-                _consecutivePresent = 0;
-            }
-
-            // only initialize if seen present *enough* times in a row
-            if (_consecutivePresent >= DebounceCountNeeded && _dev == null)
-                TryInit(devs[0]);
-
-            // only teardown if seen absent enough times in a row
-            if (_consecutiveAbsent >= DebounceCountNeeded && _dev != null)
-                Teardown();
-        }
-
-        void TryInit(string name)
-        {
-            try
-            {
-                DeviceName = name;
-                _h = PCAN_USB.DecodePEAKHandle(name);
-                _dev = new PCAN_USB();
-                var st = _dev.InitializeCAN(_h, "250 kbit/s", true);
-                if (st == TPCANStatus.PCAN_ERROR_OK)
-                {
-                    _dev.MessageReceived += pkt =>
-                        _dispatcher.Dispatch(() => FrameReceived?.Invoke(pkt));
-                    IsConnected = true;
-                }
-                else
-                {
-                    _dev.Uninitialize();
-                    _dev = null;
-                }
-            }
-            catch
-            {
-                _dev?.Uninitialize();
+                _dev.Uninitialize();
                 _dev = null;
             }
         }
-
-        void Teardown()
+        catch
         {
-            _dev!.Uninitialize();
+            _dev?.Uninitialize();
             _dev = null;
-            DeviceName = null;
-            IsConnected = false;
-        }
-
-        public void SendFrame(uint id, byte[] data, bool extended)
-        {
-            if (_dev != null && IsConnected)
-                _dev.WriteFrame(id, data.Length, data, extended);
-        }
-
-        public void Dispose()
-        {
-            _poll.Stop();
-            _poll.Dispose();
-            if (_dev != null) _dev.Uninitialize();
         }
     }
-#endif
+
+    void OnPlatformMessageReceived(PCAN_USB.Packet pkt)
+    {
+        // won’t fire after Teardown(), because we remove this handler there:
+        _dispatcher.Dispatch(() => FrameReceived?.Invoke(pkt));
+    }
+
+    void Teardown()
+    {
+        if (_dev != null)
+        {
+            _dev.MessageReceived -= OnPlatformMessageReceived;
+            _dev.Uninitialize();
+        }
+        _dev = null;
+        DeviceName = null;
+        IsConnected = false;
+    }
+
+    public void SendFrame(uint id, byte[] data, bool extended)
+    {
+        if (_dev != null && IsConnected)
+            _dev.WriteFrame(id, data.Length, data, extended);
+    }
+
+    public void Dispose()
+    {
+        _poll.Stop();
+        _poll.Dispose();
+        if (_dev != null)
+            _dev.Uninitialize();
+    }
 }
