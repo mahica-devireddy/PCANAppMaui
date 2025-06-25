@@ -8,183 +8,246 @@
     x:Class="PCANAppM.BAS" 
     BackgroundColor="#121212">
 
-    <Grid RowDefinitions="Auto, *, 60"  
-      ColumnDefinitions="*">
+    <ContentPage.Resources>
+        <Style x:Key="SideMenuButtonStyle" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent"/>
+            <Setter Property="TextColor" Value="WhiteSmoke"/>
+            <Setter Property="FontAttributes" Value="Bold"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="BorderColor" Value="Transparent"/>
+            <Setter Property="BorderWidth" Value="5"/>
+            <Setter Property="HorizontalOptions" Value="FillAndExpand"/>
+            <Setter Property="FontFamily" Value="BarlowRegular"/>
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <Setter.Value>
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="PointerOver">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="#0076CC"/>
+                                    <Setter Property="TextColor" Value="WhiteSmoke"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Pressed">
+                                <VisualState.Setters>
+                                    <Setter Property="Scale" Value="0.95"/>
+                                    <Setter Property="BackgroundColor" Value="#0076CC"/>
+                                    <Setter Property="TextColor" Value="WhiteSmoke"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="Transparent"/>
+                                    <Setter Property="TextColor" Value="WhiteSmoke"/>
+                                    <Setter Property="Scale" Value="1"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="MenuButtonStyle" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent"/>
+            <Setter Property="TextColor" Value="Black"/>
+            <Setter Property="FontAttributes" Value="Bold"/>
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="CornerRadius" Value="50"/>
+            <Setter Property="BorderColor" Value="Transparent"/>
+            <Setter Property="BorderWidth" Value="5"/>
+            <Setter Property="HeightRequest" Value="100"/>
+            <Setter Property="WidthRequest" Value="600"/>
+            <Setter Property="FontFamily" Value="BarlowRegular"/>
+            <Setter Property="Shadow">
+                <Setter.Value>
+                    <Shadow Brush="Black" Offset="8,8" Radius="10" Opacity="1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <Setter.Value>
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="PointerOver">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="#0076CC"/>
+                                    <Setter Property="TextColor" Value="WhiteSmoke"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Pressed">
+                                <VisualState.Setters>
+                                    <Setter Property="Scale" Value="0.95"/>
+                                    <Setter Property="BackgroundColor" Value="#0076CC"/>
+                                    <Setter Property="TextColor" Value="WhiteSmoke"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="WhiteSmoke"/>
+                                    <Setter Property="TextColor" Value="#121212"/>
+                                    <Setter Property="Scale" Value="1"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="HeaderImageButtonStyle" TargetType="ImageButton">
+            <Setter Property="HeightRequest" Value="65"/>
+            <Setter Property="WidthRequest" Value="75"/>
+            <Setter Property="BackgroundColor" Value="Transparent"/>
+            <Setter Property="VerticalOptions" Value="Center"/>
+            <Setter Property="Shadow">
+                <Setter.Value>
+                    <Shadow Brush="Transparent" Offset="0,0" Radius="20" Opacity="1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <Setter.Value>
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="PointerOver">
+                                <VisualState.Setters>
+                                    <Setter Property="Shadow">
+                                        <Shadow Brush="White" Offset="0,0" Radius="20" Opacity="1"/>
+                                    </Setter>
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="Shadow">
+                                        <Shadow Brush="Transparent" Offset="0,0" Radius="20" Opacity="1"/>
+                                    </Setter>
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-        <!-- HEADER -->
-        <Grid Grid.Row="0"  
-          Padding="25"  
-          ColumnDefinitions="Auto,*,Auto">
-            <!-- Oshkosh logo -->
-            <Image Source="oshkosh_logo.png"  
-               HeightRequest="65"  
-               WidthRequest="180"  
-               VerticalOptions="Center" />
+        <Style x:Key="GlowImageStyle" TargetType="Image">
+            <Setter Property="Shadow">
+                <Setter.Value>
+                    <Shadow Brush="White" Offset="0,0" Radius="15" Opacity="0.5"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </ContentPage.Resources>
 
-            <!-- Language toggle -->
-            <ImageButton Grid.Column="2"  
-                     Source="language_icon.png"  
-                     HeightRequest="65"  
-                     WidthRequest="75"  
-                     BackgroundColor="Transparent"  
-                     Clicked="OnLanguageButtonClicked"  
-                     VerticalOptions="Center" />
-        </Grid>
+    <Grid>
+        <!-- Main layout grid (header, content, etc.) -->
+        <Grid x:Name="MainLayout" RowDefinitions="Auto,*,60" ColumnDefinitions="*">
+            <!-- HEADER -->
+            <Grid Grid.Row="0" Padding="25" ColumnDefinitions="Auto,*,Auto">
+                <!-- Oshkosh logo -->
+                <ImageButton Source="oshkosh_logo.png"
+                             Style="{StaticResource HeaderImageButtonStyle}"
+                             HeightRequest="65"
+                             WidthRequest="180"
+                             VerticalOptions="Center"
+                             Clicked="OnOshkoshLogoClicked" />
+                <!-- Language toggle -->
+                <ImageButton Grid.Column="2"
+                             Source="language_icon.png"
+                             Style="{StaticResource HeaderImageButtonStyle}"
+                             HeightRequest="65"
+                             WidthRequest="75"
+                             BackgroundColor="Transparent"
+                             Clicked="OnLanguageButtonClicked"
+                             VerticalOptions="Center" />
+            </Grid>
 
-        <!-- MAIN CONTENT -->
-        <Grid Grid.Row="1" 
-              VerticalOptions="Center" 
-              HorizontalOptions="CenterAndExpand">
-            <!-- Initial View -->
-            <StackLayout x:Name="InitialBasView" 
-                         IsVisible="True" 
-                         Spacing="20" 
-                         VerticalOptions="Center">
-                
-                <Image Source="angle_sensor.png" 
-                       HeightRequest="350" 
-                       HorizontalOptions="Center" 
-                       Margin="0,-20,0,0"/>
-                
-                <Label x:Name="LatestCanIdLabel1" 
-                       Text="{localization:Translate CurrentBAS}"
-                       TextColor="White" 
-                       FontSize="40" 
-                       FontFamily="BarlowRegular"
-                       HorizontalTextAlignment="Center" 
-                       FontAttributes="Bold" />
+            <!-- MAIN CONTENT -->
+            <Grid Grid.Row="1" 
+                  VerticalOptions="Center" 
+                  HorizontalOptions="CenterAndExpand">
+                <!-- Initial View -->
+                <StackLayout x:Name="InitialBasView" 
+                             IsVisible="True" 
+                             Spacing="20" 
+                             VerticalOptions="Center">
+                    <VerticalStackLayout Padding="0,0,0,40"></VerticalStackLayout>
+                    <Image Source="angle_sensor.png"
+                           Style="{StaticResource GlowImageStyle}"
+                           HeightRequest="350" 
+                           HorizontalOptions="Center" 
+                           Margin="0,-20,0,0"/>
+                    
+                    <Label x:Name="LatestCanIdLabel1" 
+                           Text="{localization:Translate CurrentBAS}"
+                           TextColor="GhostWhite" 
+                           FontSize="40" 
+                           FontFamily="BarlowRegular"
+                           HorizontalTextAlignment="Center" 
+                           FontAttributes="Bold" />
 
-                <Button Text="{localization:Translate SetButton}" 
-                        Clicked="OnSetCanIdClicked"
-                        FontSize="35" 
+                    <Button Text="{localization:Translate SetButton}" 
+                            Style="{StaticResource MenuButtonStyle}"
+                            Clicked="OnSetCanIdClicked"
+                            FontSize="35" 
+                            FontFamily="BarlowRegular"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center"
+                            BackgroundColor="GhostWhite"
+                            TextColor="Black" 
+                            WidthRequest="400" 
+                            HeightRequest="65"
+                            CornerRadius="30" />
+
+                    <Button
+                        Text="Check Connection"
+                        Style="{StaticResource MenuButtonStyle}"
+                        Clicked="OnCheckConnectionClicked"
+                        FontSize="35"
                         FontFamily="BarlowRegular"
                         HorizontalOptions="Center"
                         VerticalOptions="Center"
-                        BackgroundColor="White"
-                        TextColor="Black" 
-                        WidthRequest="400" 
+                        BackgroundColor="WhiteSmoke"
+                        TextColor="Black"
+                        WidthRequest="400"
                         HeightRequest="65"
-                        CornerRadius="30" />
-                
-            </StackLayout>
+                        CornerRadius="30"
+                        Margin="0,10,0,0"/>
 
-            <!-- Set CAN ID Dialog -->
-            <Frame x:Name="SetCanIdView1" 
-                   BackgroundColor="Black" 
-                   Padding="0" 
-                   CornerRadius="10"
-                   WidthRequest="1000" 
-                   HeightRequest="400" 
-                   HasShadow="False"
-                   BorderColor="Transparent" 
-                   IsVisible="False">
-                
-                <Grid RowDefinitions="Auto,Auto,Auto,Auto" 
-                      ColumnDefinitions="*,Auto"
-                      BackgroundColor="LightGray">
+                </StackLayout>
+
+                <!-- Set CAN ID Dialog -->
+                <Frame x:Name="SetCanIdView1" 
+                       BackgroundColor="Black" 
+                       Padding="0" 
+                       CornerRadius="10"
+                       WidthRequest="1000" 
+                       HeightRequest="400" 
+                       HasShadow="False"
+                       BorderColor="Transparent" 
+                       IsVisible="False">
                     
-                    <StackLayout Grid.Row="0" 
-                                 Grid.Column="0" 
-                                 Grid.ColumnSpan="2"
-                                 BackgroundColor="White" 
-                                 Padding="40,30" 
-                                 Spacing="10">
+                    <Grid RowDefinitions="Auto,Auto,Auto,Auto" 
+                          ColumnDefinitions="*,Auto"
+                          BackgroundColor="LightGray">
                         
-                        <Label Text="{localization:Translate SetButton}" 
-                               FontFamily="BarlowRegular"
-                               FontSize="50" 
-                               FontAttributes="Bold" 
-                               TextColor="Black" />
-                        
-                        <Label Text="{localization:Translate Instructions}" 
-                               FontFamily="BarlowRegular"
-                               FontSize="30" 
-                               TextColor="Black" />
-                        
-                    </StackLayout>
-
-                    <Button Grid.Row="0" 
-                            Grid.Column="1" 
-                            Text="✕" 
-                            FontSize="30"
-                            TextColor="Black" 
-                            BackgroundColor="Transparent"
-                            HorizontalOptions="End" 
-                            VerticalOptions="Start"
-                            Clicked="OnExitClicked" 
-                            Padding="0"
-                            WidthRequest="40" 
-                            HeightRequest="40" />
-
-                    <BoxView Grid.Row="1" 
-                             Grid.ColumnSpan="2" 
-                             HeightRequest="10"
-                             BackgroundColor="Black" 
-                             HorizontalOptions="Fill" />
-
-                    <StackLayout Grid.Row="2" 
-                                 Grid.ColumnSpan="2"
-                                 VerticalOptions="Center" 
-                                 HorizontalOptions="Center"
-                                 Spacing="20" 
-                                 Margin="0,45,0,0">
-                        
-                        <Entry x:Name="NewCanIdEntry1" 
-                               Placeholder="{localization:Translate Entry}"
-                               BackgroundColor="White" 
-                               TextColor="Gray" 
-                               FontSize="24"
-                               FontFamily="BarlowRegular" 
-                               WidthRequest="450" 
-                               HeightRequest="60" />
-                        
-                    </StackLayout>
-
-                    <StackLayout Grid.Row="3" 
-                                 Grid.ColumnSpan="2"
-                                 VerticalOptions="Start" 
-                                 HorizontalOptions="Center"
-                                 Margin="0,20,0,0">
-                        
-                        <Button Text="{localization:Translate Set}" 
-                                FontFamily="BarlowRegular" 
-                                Clicked="OnSetClicked"
-                                BackgroundColor="Black" 
-                                TextColor="White"
-                                FontSize="35" 
-                                WidthRequest="200" 
-                                HeightRequest="55"
-                                CornerRadius="30" />
-                        
-                    </StackLayout>
-                </Grid>
-            </Frame>
-
-            <!-- CONFIRM CAN ID DIALOG -->
-            <Grid x:Name="ConfirmCanIdView1" Grid.Row="1" VerticalOptions="Center" HorizontalOptions="Center" IsVisible="False">
-                <Frame BackgroundColor="Black"
-                   Padding="0"
-                   CornerRadius="10"
-                   WidthRequest="1000"
-                   HeightRequest="400"
-                   HasShadow="False"
-                   BorderColor="Transparent">
-                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*" BackgroundColor="LightGray">
-                        <!-- White Header Section -->
                         <StackLayout Grid.Row="0" 
-                                     BackgroundColor="White" 
-                                     Padding="40,70" 
+                                     Grid.Column="0" 
+                                     Grid.ColumnSpan="2"
+                                     BackgroundColor="GhostWhite" 
+                                     Padding="40,30" 
                                      Spacing="10">
                             
-                            <Label x:Name="ConfirmText1"
-                               Text="{localization:Translate ConfirmMessage}"
-                               FontSize="80"
-                               FontAttributes="Bold"
-                               TextColor="Black"
-                               FontFamily="BarlowRegular"
-                               HorizontalTextAlignment="Center" />
+                            <Label Text="{localization:Translate SetButton}" 
+                                   FontFamily="BarlowRegular"
+                                   FontSize="50" 
+                                   FontAttributes="Bold" 
+                                   TextColor="Black" />
+                            
+                            <Label Text="{localization:Translate Instructions}" 
+                                   FontFamily="BarlowRegular"
+                                   FontSize="30" 
+                                   TextColor="Black" />
                             
                         </StackLayout>
+
                         <Button Grid.Row="0" 
                                 Grid.Column="1" 
                                 Text="✕" 
@@ -198,29 +261,221 @@
                                 WidthRequest="40" 
                                 HeightRequest="40" />
 
-                        <!-- Black separator -->
-                        <BoxView Grid.Row="1" HeightRequest="10" BackgroundColor="Black" HorizontalOptions="Fill" />
+                        <BoxView Grid.Row="1" 
+                                 Grid.ColumnSpan="2" 
+                                 HeightRequest="10"
+                                 BackgroundColor="Black" 
+                                 HorizontalOptions="Fill" />
 
-                        <!-- Confirm Button -->
                         <StackLayout Grid.Row="2" 
+                                     Grid.ColumnSpan="2"
                                      VerticalOptions="Center" 
-                                     HorizontalOptions="Center" 
-                                     Margin="0,50,0,0">
+                                     HorizontalOptions="Center"
+                                     Spacing="20" 
+                                     Margin="0,45,0,0">
                             
-                            <Button Text="{localization:Translate Confirm}"
-                                FontFamily="BarlowRegular"
-                                BackgroundColor="Black"
-                                TextColor="White"
-                                FontSize="35"
-                                WidthRequest="200"
-                                HeightRequest="60"
-                                CornerRadius="30"
-                                HorizontalOptions="Center"
-                                Clicked="OnConfirmClicked" />
+                            <Entry x:Name="NewCanIdEntry1" 
+                                   Placeholder="{localization:Translate Entry}"
+                                   BackgroundColor="GhostWhite" 
+                                   TextColor="Gray" 
+                                   FontSize="24"
+                                   FontFamily="BarlowRegular" 
+                                   WidthRequest="450" 
+                                   HeightRequest="60" />
+                            
+                        </StackLayout>
+
+                        <StackLayout Grid.Row="3" 
+                                     Grid.ColumnSpan="2"
+                                     VerticalOptions="Start" 
+                                     HorizontalOptions="Center"
+                                     Margin="0,20,0,0">
+                            
+                            <Button Text="{localization:Translate Set}"
+                                    Style="{StaticResource MenuButtonStyle}"
+                                    FontFamily="BarlowRegular" 
+                                    Clicked="OnSetClicked"
+                                    BackgroundColor="Black" 
+                                    TextColor="GhostWhite"
+                                    FontSize="35" 
+                                    WidthRequest="200" 
+                                    HeightRequest="60"
+                                    CornerRadius="30" />
+                            
                         </StackLayout>
                     </Grid>
                 </Frame>
+
+                <!-- CONFIRM CAN ID DIALOG -->
+                <Grid x:Name="ConfirmCanIdView1" Grid.Row="1" VerticalOptions="Center" HorizontalOptions="Center" IsVisible="False">
+                    <Frame BackgroundColor="Black"
+                       Padding="0"
+                       CornerRadius="10"
+                       WidthRequest="1000"
+                       HeightRequest="400"
+                       HasShadow="False"
+                       BorderColor="Transparent">
+                        <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*" BackgroundColor="LightGray">
+                            <!-- White Header Section -->
+                            <StackLayout Grid.Row="0" 
+                                         BackgroundColor="GhostWhite" 
+                                         Padding="40,70" 
+                                         Spacing="10">
+
+                                <Label x:Name="ConfirmText1"
+                                       Text="{localization:Translate ConfirmMessage}"
+                                       FontSize="80"
+                                       FontAttributes="Bold"
+                                       TextColor="Black"
+                                       FontFamily="BarlowRegular"
+                                       HorizontalTextAlignment="Center" />
+
+                            </StackLayout>
+                            <Button Grid.Row="0" 
+                                    Grid.Column="1" 
+                                    Text="✕" 
+                                    FontSize="30"
+                                    TextColor="Black" 
+                                    BackgroundColor="Transparent"
+                                    HorizontalOptions="End" 
+                                    VerticalOptions="Start"
+                                    Clicked="OnExitClicked" 
+                                    Padding="0"
+                                    WidthRequest="40" 
+                                    HeightRequest="40" />
+
+                            <!-- Black separator -->
+                            <BoxView Grid.Row="1" HeightRequest="10" BackgroundColor="Black" HorizontalOptions="Fill" />
+
+                            <!-- Confirm Button -->
+                            <StackLayout Grid.Row="2" 
+                                         VerticalOptions="Center" 
+                                         HorizontalOptions="Center" 
+                                         Margin="0,50,0,0">
+
+                                <Button Text="{localization:Translate Confirm}"
+                                        Style="{StaticResource MenuButtonStyle}"
+                                        FontFamily="BarlowRegular"
+                                        BackgroundColor="Black"
+                                        TextColor="GhostWhite"
+                                        FontSize="35"
+                                        WidthRequest="200"
+                                        HeightRequest="60"
+                                        CornerRadius="30"
+                                        HorizontalOptions="Center"
+                                        Clicked="OnConfirmClicked" />
+                            </StackLayout>
+                        </Grid>
+                    </Frame>
+                </Grid>
             </Grid>
+        </Grid>
+
+        <!-- Dimmed background overlay (covers entire page, including header) -->
+        <BoxView x:Name="SideMenuDim"
+                 IsVisible="False"
+                 BackgroundColor="#80000000"
+                 InputTransparent="False"
+                 ZIndex="9"
+                 Grid.Row="0"
+                 Grid.Column="0"
+                 Grid.RowSpan="3"
+                 VerticalOptions="FillAndExpand">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnCloseSideMenuClicked" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+
+        <!-- Side Menu Overlay (covers entire page, including header) -->
+        <Grid x:Name="SideMenu"
+              IsVisible="False"
+              BackgroundColor="#121212"
+              HorizontalOptions="Start"
+              VerticalOptions="FillAndExpand"
+              WidthRequest="250"
+              ZIndex="10"
+              Grid.Row="0"
+              Grid.Column="0"
+              Grid.RowSpan="3"
+              TranslationX="-350">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Close (X) Button in top right -->
+            <Button Grid.Row="0"
+                    Grid.Column="1"
+                    Text="✕"
+                    FontSize="30"
+                    TextColor="WhiteSmoke"
+                    BackgroundColor="Transparent"
+                    HorizontalOptions="End"
+                    VerticalOptions="Start"
+                    Clicked="OnCloseSideMenuClicked"
+                    Padding="0"
+                    WidthRequest="40"
+                    HeightRequest="40" />
+
+            <!-- Dashboard Title under the X button -->
+            <Label Grid.Row="0"
+                   Grid.Column="0"
+                   Text="Dashboard"
+                   FontSize="36"
+                   TextColor="WhiteSmoke"
+                   FontFamily="BarlowRegular"
+                   FontAttributes="Bold"
+                   VerticalOptions="Center"
+                   HorizontalOptions="Center"
+                   Margin="30,60,0,0"/>
+
+            <!-- Menu Buttons with dividers -->
+            <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
+                                 VerticalOptions="Start"
+                                 Spacing="0"
+                                 Padding="0,30,0,30">
+                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Opacity="0.5" Offset="0,4" Radius="8"/>
+                    </Frame.Shadow>
+                </Frame>
+                <Button Text="{localization:Translate TheMenu}"
+                        Clicked="OnMenuClicked"
+                        Style="{StaticResource SideMenuButtonStyle}" />
+                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Opacity="0.9" Offset="0,8" Radius="16"/>
+                    </Frame.Shadow>
+                </Frame>
+                <Button Text="{localization:Translate BAS}"
+                        Clicked="OnAngleSensorMenuClicked"
+                        Style="{StaticResource SideMenuButtonStyle}" />
+                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Opacity="0.9" Offset="0,8" Radius="16"/>
+                    </Frame.Shadow>
+                </Frame>
+                <Button Text="{localization:Translate KZV}"
+                        Clicked="OnKzValveMenuClicked"
+                        Style="{StaticResource SideMenuButtonStyle}" />
+                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Opacity="0.9" Offset="0,8" Radius="16"/>
+                    </Frame.Shadow>
+                </Frame>
+                <Button Text="{localization:Translate FTLS}"
+                        Clicked="OnFluidTankLevelMenuClicked"
+                        Style="{StaticResource SideMenuButtonStyle}" />
+                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
+                    <Frame.Shadow>
+                        <Shadow Brush="Black" Opacity="1.0" Offset="0,8" Radius="16"/>
+                    </Frame.Shadow>
+                </Frame>
+            </VerticalStackLayout>
         </Grid>
     </Grid>
 </ContentPage>
