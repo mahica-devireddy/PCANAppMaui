@@ -1,25 +1,31 @@
+using Microsoft.Maui.Dispatching;
+using Peak.Can.Basic;
 using System;
 using System.ComponentModel;
-using System.Timers;
-using Microsoft.Maui.Dispatching;
+
+#if WINDOWS
+using PCANAppM.Services;
 using PCANAppM.Platforms.Windows;
-using Peak.Can.Basic;
+using System.Timers; 
+#endif
+using System.Timers;
 
 namespace PCANAppM.Services
 {
+#if WINDOWS
     public class CanBusService : ICanBusService, INotifyPropertyChanged, IDisposable
     {
         const int PollMs = 500;
         const int DebounceCountNeeded = 3;  // ~1.5s
 
-        readonly Timer _poll;
+        readonly System.Timers.Timer _poll;
         readonly IDispatcher _dispatcher;
 
         int _consecutivePresent;
         int _consecutiveAbsent;
 
         PCAN_USB? _dev;
-        ushort    _h;
+        ushort _h;
 
         bool _isConn;
         public bool IsConnected
@@ -40,8 +46,8 @@ namespace PCANAppM.Services
         public CanBusService(IDispatcher disp)
         {
             _dispatcher = disp;
-            _poll = new Timer(PollMs) { AutoReset = true };
-            _poll.Elapsed += (_,__) => Check();
+            _poll = new System.Timers.Timer(PollMs) { AutoReset = true };
+            _poll.Elapsed += (_, __) => Check();
             _poll.Start();
         }
 
@@ -118,4 +124,5 @@ namespace PCANAppM.Services
             if (_dev != null) _dev.Uninitialize();
         }
     }
+#endif
 }
