@@ -1,64 +1,110 @@
-using Peak.Can.Basic;
 using System;
+using System.ComponentModel;
 using System.Timers;
 using Microsoft.Maui.Dispatching;
+using PCANAppM.Platforms.Windows;   // ← your PCAN_USB
+using Peak.Can.Basic;
 
 namespace PCANAppM.Services
 {
-    public class CanBusService : ICanBusService
+    public class CanBusService : ICanBusService, INotifyPropertyChanged, IDisposable
     {
         const int PollIntervalMs = 500;
         readonly Timer _pollTimer;
-        PCAN_USB?      _device;
-        ushort         _handle;
+        readonly IDispatcher _dispatcher;
 
-        public bool   IsConnected { get; private set; }
+        PCAN_USB? _device;
+        ushort    _handle;
+
+        bool _isConnected;
+        public bool IsConnected
+        {
+            get => _isConnected;
+            private set
+            {
+                if (_isConnected != value)
+                {
+                    _isConnected = value;
+                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsConnected)));
+                }
+            }
+        }
+
         public string? DeviceName { get; private set; }
+
         public event Action<PCAN_USB.Packet>? FrameReceived;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public CanBusService(IDispatcher dispatcher)
         {
-            // Poll for hot-plug every half second
+            _dispatcher = dispatcher;
             _pollTimer = new Timer(PollIntervalMs) { AutoReset = true };
-            _pollTimer.Elapsed += (_,_) => CheckAndInit(dispatcher);
+            _pollTimer.Elapsed += (s,e) => CheckDevice();
             _pollTimer.Start();
         }
 
-        void CheckAndInit(IDispatcher dispatcher)
+        void CheckDevice()
         {
             var devices = PCAN_USB.GetUSBDevices();
             bool present = devices.Count > 0;
 
-            // Only initialize once when first plugged in
-            if (present && !IsConnected)
+            // 1) If unplugged now but was connected before => tear down
+            if (!present && _device != null)
             {
-                DeviceName = devices[0];
-                _handle    = PCAN_USB.DecodePEAKHandle(DeviceName);
-                _device    = new PCAN_USB();
-                var status = _device.InitializeCAN(_handle, "250 kbit/s", true);
+                _device.Uninitialize();
+                _device = null;
+                DeviceName = null;
+                IsConnected = false;
+            }
 
-                if (status == TPCANStatus.PCAN_ERROR_OK)
+            // 2) If plugged in now and not yet initialized => init
+            if (present && _device == null)
+            {
+                try
                 {
-                    // Forward packets onto the UI thread
-                    _device.MessageReceived += pkt =>
-                        dispatcher.Dispatch(() => FrameReceived?.Invoke(pkt));
-                    IsConnected = true;
+                    DeviceName = devices[0];
+                    _handle    = PCAN_USB.DecodePEAKHandle(DeviceName);
+                    _device    = new PCAN_USB();
+                    // true=>enable background reading + MessageReceived events
+                    var status = _device.InitializeCAN(_handle, "250 kbit/s", true);
+
+                    if (status == TPCANStatus.PCAN_ERROR_OK)
+                    {
+                        // forward incoming packets on UI thread
+                        _device.MessageReceived += pkt =>
+                            _dispatcher.Dispatch(() => FrameReceived?.Invoke(pkt));
+                        IsConnected = true;
+                    }
+                    else
+                    {
+                        // init failed: clean up
+                        _device.Uninitialize();
+                        _device = null;
+                    }
                 }
-                else
+                catch
                 {
-                    // Clean up on init failure
-                    _device.Uninitialize();   // release the handle
+                    _device?.Uninitialize();
                     _device = null;
                 }
             }
-
-            // <no handling of unplug>
         }
 
         public void SendFrame(uint id, byte[] data, bool extended)
         {
-            if (IsConnected && _device is not null)
+            if (IsConnected && _device != null)
                 _device.WriteFrame(id, data.Length, data, extended);
+        }
+
+        public void Dispose()
+        {
+            _pollTimer.Stop();
+            _pollTimer.Dispose();
+            if (_device != null)
+            {
+                _device.Uninitialize();
+                _device = null;
+            }
         }
     }
 }
