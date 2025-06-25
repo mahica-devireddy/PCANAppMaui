@@ -52,36 +52,78 @@ namespace PCANAppM
             UpdateDeviceStatus();
         }
 
+//         private void UpdateDeviceStatus()
+//         {
+// #if WINDOWS
+//             var devices = PCAN_USB.GetUSBDevices();
+//             string status;
+//             string imageSource;
+//             if (devices != null && devices.Count > 0)
+//             {
+//                 status = devices[0] + "  " + _localizationResourceManager["Status2"];
+//                 imageSource = "green_check.png";
+//                 isDeviceConnected = true;
+//             }
+//             else
+//             {
+//                 status = _localizationResourceManager["Status1"];
+//                 imageSource = "red_ex.png";
+//                 isDeviceConnected = false;
+//             }
+
+//             if (status != lastStatus)
+//             {
+//                 lastStatus = status;
+//                 MainThread.BeginInvokeOnMainThread(() =>
+//                 {
+//                     StatusLabel.Text = status;
+//                     StatusImage1.Source = imageSource;
+//                 });
+//             }
+// #endif
+//         }
         private void UpdateDeviceStatus()
         {
-#if WINDOWS
+            // 1) Poll the physical USB device list
             var devices = PCAN_USB.GetUSBDevices();
-            string status;
-            string imageSource;
-            if (devices != null && devices.Count > 0)
+            bool physicallyPresent = devices.Count > 0;
+        
+            // 2) If it just got plugged in, (re)initialize the shared PCAN service
+            if (physicallyPresent && !PCanService.IsStarted)
             {
-                status = devices[0] + "  " + _localizationResourceManager["Status2"];
-                imageSource = "green_check.png";
-                isDeviceConnected = true;
+                PCanService.TryInitialize();
+            }
+        
+            // 3) Decide “connected” from the service state, not just the enumeration
+            bool connected = PCanService.IsStarted;
+        
+            // 4) Build status text + icon
+            string status, imageSource;
+            if (connected)
+            {
+                status       = $"{devices[0]}  {_localizationResourceManager["Status2"]}";
+                imageSource  = "green_check.png";
+                _isDeviceConnected = true;
             }
             else
             {
-                status = _localizationResourceManager["Status1"];
-                imageSource = "red_ex.png";
-                isDeviceConnected = false;
+                status       = _localizationResourceManager["Status1"];
+                imageSource  = "red_ex.png";
+                _isDeviceConnected = false;
             }
-
-            if (status != lastStatus)
+        
+            // 5) Only update the UI when the status text really changes
+            if (status != _lastStatus)
             {
-                lastStatus = status;
+                _lastStatus = status;
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    StatusLabel.Text = status;
+                    StatusLabel.Text    = status;
                     StatusImage1.Source = imageSource;
                 });
             }
-#endif
         }
+
 
         private async void OnStatusImageClicked(object sender, EventArgs e)
         {
