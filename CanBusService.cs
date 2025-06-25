@@ -2,109 +2,120 @@ using System;
 using System.ComponentModel;
 using System.Timers;
 using Microsoft.Maui.Dispatching;
-using PCANAppM.Platforms.Windows;   // ← your PCAN_USB
+using PCANAppM.Platforms.Windows;
 using Peak.Can.Basic;
 
 namespace PCANAppM.Services
 {
     public class CanBusService : ICanBusService, INotifyPropertyChanged, IDisposable
     {
-        const int PollIntervalMs = 500;
-        readonly Timer _pollTimer;
+        const int PollMs = 500;
+        const int DebounceCountNeeded = 3;  // ~1.5s
+
+        readonly Timer _poll;
         readonly IDispatcher _dispatcher;
 
-        PCAN_USB? _device;
-        ushort    _handle;
+        int _consecutivePresent;
+        int _consecutiveAbsent;
 
-        bool _isConnected;
+        PCAN_USB? _dev;
+        ushort    _h;
+
+        bool _isConn;
         public bool IsConnected
         {
-            get => _isConnected;
+            get => _isConn;
             private set
             {
-                if (_isConnected != value)
-                {
-                    _isConnected = value;
-                    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsConnected)));
-                }
+                if (_isConn == value) return;
+                _isConn = value;
+                PropertyChanged?.Invoke(this, new(nameof(IsConnected)));
             }
         }
 
         public string? DeviceName { get; private set; }
-
         public event Action<PCAN_USB.Packet>? FrameReceived;
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        public CanBusService(IDispatcher dispatcher)
+        public CanBusService(IDispatcher disp)
         {
-            _dispatcher = dispatcher;
-            _pollTimer = new Timer(PollIntervalMs) { AutoReset = true };
-            _pollTimer.Elapsed += (s,e) => CheckDevice();
-            _pollTimer.Start();
+            _dispatcher = disp;
+            _poll = new Timer(PollMs) { AutoReset = true };
+            _poll.Elapsed += (_,__) => Check();
+            _poll.Start();
         }
 
-        void CheckDevice()
+        void Check()
         {
-            var devices = PCAN_USB.GetUSBDevices();
-            bool present = devices.Count > 0;
+            var devs = PCAN_USB.GetUSBDevices();
+            bool present = devs.Count > 0;
 
-            // 1) If unplugged now but was connected before => tear down
-            if (!present && _device != null)
+            if (present)
             {
-                _device.Uninitialize();
-                _device = null;
-                DeviceName = null;
-                IsConnected = false;
+                _consecutivePresent++;
+                _consecutiveAbsent = 0;
+            }
+            else
+            {
+                _consecutiveAbsent++;
+                _consecutivePresent = 0;
             }
 
-            // 2) If plugged in now and not yet initialized => init
-            if (present && _device == null)
-            {
-                try
-                {
-                    DeviceName = devices[0];
-                    _handle    = PCAN_USB.DecodePEAKHandle(DeviceName);
-                    _device    = new PCAN_USB();
-                    // true=>enable background reading + MessageReceived events
-                    var status = _device.InitializeCAN(_handle, "250 kbit/s", true);
+            // only initialize if seen present *enough* times in a row
+            if (_consecutivePresent >= DebounceCountNeeded && _dev == null)
+                TryInit(devs[0]);
 
-                    if (status == TPCANStatus.PCAN_ERROR_OK)
-                    {
-                        // forward incoming packets on UI thread
-                        _device.MessageReceived += pkt =>
-                            _dispatcher.Dispatch(() => FrameReceived?.Invoke(pkt));
-                        IsConnected = true;
-                    }
-                    else
-                    {
-                        // init failed: clean up
-                        _device.Uninitialize();
-                        _device = null;
-                    }
-                }
-                catch
+            // only teardown if seen absent enough times in a row
+            if (_consecutiveAbsent >= DebounceCountNeeded && _dev != null)
+                Teardown();
+        }
+
+        void TryInit(string name)
+        {
+            try
+            {
+                DeviceName = name;
+                _h = PCAN_USB.DecodePEAKHandle(name);
+                _dev = new PCAN_USB();
+                var st = _dev.InitializeCAN(_h, "250 kbit/s", true);
+                if (st == TPCANStatus.PCAN_ERROR_OK)
                 {
-                    _device?.Uninitialize();
-                    _device = null;
+                    _dev.MessageReceived += pkt =>
+                        _dispatcher.Dispatch(() => FrameReceived?.Invoke(pkt));
+                    IsConnected = true;
+                }
+                else
+                {
+                    _dev.Uninitialize();
+                    _dev = null;
                 }
             }
+            catch
+            {
+                _dev?.Uninitialize();
+                _dev = null;
+            }
+        }
+
+        void Teardown()
+        {
+            _dev!.Uninitialize();
+            _dev = null;
+            DeviceName = null;
+            IsConnected = false;
         }
 
         public void SendFrame(uint id, byte[] data, bool extended)
         {
-            if (IsConnected && _device != null)
-                _device.WriteFrame(id, data.Length, data, extended);
+            if (_dev != null && IsConnected)
+                _dev.WriteFrame(id, data.Length, data, extended);
         }
 
         public void Dispose()
         {
-            _pollTimer.Stop();
-            _pollTimer.Dispose();
-            if (_device != null)
-            {
-                _device.Uninitialize();
-                _device = null;
-            }
+            _poll.Stop();
+            _poll.Dispose();
+            if (_dev != null) _dev.Uninitialize();
         }
     }
 }
