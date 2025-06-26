@@ -137,3 +137,38 @@ public partial class Menu : ContentPage
         );
     }
 }
+using Microsoft.Maui.Controls;
+using LocalizationResourceManager.Maui;
+using PCANAppM.Services;
+
+namespace PCANAppM
+{
+#if WINDOWS
+    public partial class Menu : ContentPage
+    {
+        readonly ILocalizationResourceManager _loc;
+        readonly CanBusService               _bus;
+
+        public Menu(
+            ILocalizationResourceManager loc,
+            CanBusService               bus
+        )
+        {
+            InitializeComponent();
+            _loc = loc;
+            _bus = bus;
+        }
+
+        async void OnBoomAngleSensorClicked(object sender, EventArgs e)
+            => await Navigation.PushAsync(new BAS(_loc, _bus));
+
+        async void OnKZValveClicked(object sender, EventArgs e)
+            => await Navigation.PushAsync(new KZV(_loc, _bus));
+
+        async void OnFTLSClicked(object sender, EventArgs e)
+            => await Navigation.PushAsync(new FTLS(_loc, _bus));
+        
+        // … your pointer animations, etc. …
+    }
+#endif
+}
