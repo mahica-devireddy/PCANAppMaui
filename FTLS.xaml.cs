@@ -129,6 +129,16 @@ namespace PCANAppM
             InitialFtlsView.IsVisible   = true;
         }
 
+        /// <summary>
+        /// Your restored “X” button handler to bail out of the set-CAN-ID flow completely
+        /// </summary>
+        private void OnExitClicked(object sender, EventArgs e)
+        {
+            SetCanIdView2.IsVisible      = false;
+            InitialFtlsView.IsVisible    = true;
+            ConfirmCanIdView2.IsVisible  = false;
+        }
+
         private async void OnConfirmClicked(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_pendingCanId)) return;
