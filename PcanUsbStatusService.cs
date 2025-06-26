@@ -47,7 +47,7 @@ namespace PCANAppM.Services
                 _deviceName = name!;
                 var handle = PCAN_USB.DecodePEAKHandle(_deviceName);
                 _pcanUsb = new PCAN_USB();
-                _pcanUsb.InitializeCAN(handle, BaudRate, connected);
+                var status = _pcanUsb.InitializeCAN(handle, BaudRate, connected);
             }
 
             if (connected != _isConnected || name != _deviceName)
