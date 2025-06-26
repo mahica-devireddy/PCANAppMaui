@@ -314,3 +314,78 @@ public class CanMessageViewModel
     public string Id { get; set; } = "";
     public string Data { get; set; } = "";
 }
+using Microsoft.Maui.Controls;
+using LocalizationResourceManager.Maui;
+using PCANAppM.Services;
+using System;
+using System.Globalization;
+using System.Timers;
+
+namespace PCANAppM
+{
+#if WINDOWS
+    public partial class KZV : ContentPage
+    {
+        readonly ILocalizationResourceManager _loc;
+        readonly CanBusService               _bus;
+        Timer                                _timeout;
+
+        public KZV(
+            ILocalizationResourceManager loc,
+            CanBusService               bus
+        )
+        {
+            InitializeComponent();
+            _loc = loc;
+            _bus = bus;
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            _bus.FrameReceived += OnFrame;
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            _bus.FrameReceived -= OnFrame;
+            _timeout?.Stop();
+        }
+
+        void OnFrame(PCAN_USB.Packet pkt)
+        {
+            uint pgn = (pkt.Id >> 8) & 0xFFFF;
+            if (pgn == 0xFECA)
+            {
+                KZVConnectionState.IsConnected = true;
+                DebounceTimeout();
+            }
+
+            string hx = pkt.Id.ToString("X");
+            string last2 = hx.Length >= 2 ? hx[^2..] : hx;
+            if (int.TryParse(last2, NumberStyles.HexNumber, null, out var idInt))
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                    LatestCanIdLabel.Text = $"{_loc["CurrentKZV"]} {idInt}"
+                );
+            }
+        }
+
+        void DebounceTimeout()
+        {
+            _timeout?.Stop();
+            _timeout = new Timer(2000) { AutoReset = false };
+            _timeout.Elapsed += (_,__) => KZVConnectionState.IsConnected = false;
+            _timeout.Start();
+        }
+
+        async void OnConfirmClicked(object sender, EventArgs e)
+        {
+            // compute your canId & data…
+            _bus.SendFrame(canId, data, canId > 0x7FF);
+        }
+    }
+#endif
+}
+
