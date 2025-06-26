@@ -1,53 +1,41 @@
+#if WINDOWS
 using Microsoft.Extensions.Logging;
-using PCANAppM.Services;              // ← for ICanBusService & CanBusService
+using LocalizationResourceManager.Maui;
+using PCANAppM.Resources.Languages;
+using System.Globalization;
+using Syncfusion.Maui.Core.Hosting; 
+using PCANAppM.Services;
 
-namespace PCANAppMaui
+namespace PCANAppM
 {
     public static class MauiProgram
     {
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
-
             builder
                 .UseMauiApp<App>()
+                .ConfigureSyncfusionCore()
+                .UseLocalizationResourceManager(settings =>
+                {
+                    settings.AddResource(PCANAppM.Resources.Languages.AppResources.ResourceManager);
+                })
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
-                    fonts.AddFont("InriaSans-Regular.ttf", "InriaSansRegular");
+                    fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
+                    fonts.AddFont("Barlow-Regular.ttf", "BarlowRegular");
                 });
 
-            // ← register your CAN-bus service as a singleton
-            builder.Services.AddSingleton<ICanBusService, CanBusService>();
+            builder.Services.AddSingleton<MainPage>();
 
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
-
+            // Register the localization resource manager and services
+            builder.Services.AddSingleton<ICanBusService, CanBusService>();
             return builder.Build();
         }
     }
 }
-
-using PCANAppM.Services;
-// …
-
-public static class MauiProgram
-{
-    public static MauiApp CreateMauiApp()
-    {
-        var builder = MauiApp.CreateBuilder();
-        builder
-            .UseMauiApp<App>()
-            .ConfigureFonts(fonts => { /* … */ });
-
-#if DEBUG
-        builder.Logging.AddDebug();
 #endif
-        // ← add this line:
-        builder.Services.AddSingleton<CanBusService>();
-
-        return builder.Build();
-    }
-}
-
