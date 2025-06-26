@@ -47,7 +47,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
         <Style x:Key="GlowImageStyle" TargetType="Image">
             <Setter Property="Shadow">
                 <Setter.Value>
@@ -55,7 +54,6 @@
                 </Setter.Value>
             </Setter>
         </Style>
-
         <Style x:Key="HeaderImageButtonStyle" TargetType="ImageButton">
             <Setter Property="HeightRequest" Value="65"/>
             <Setter Property="WidthRequest" Value="75"/>
@@ -89,6 +87,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        
     </ContentPage.Resources>
     <Grid>
         <!-- Main layout grid (header, content, etc.) -->
@@ -117,6 +116,7 @@
 
                     <!-- PCAN device picture -->
                     <Image Source="pcan.png"  
+                           Style="{StaticResource GlowImageStyle}"
                            Aspect="AspectFit"  
                            HeightRequest="480" />
 
