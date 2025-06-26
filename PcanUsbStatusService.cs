@@ -1,62 +1,76 @@
-using Microsoft.Maui.Dispatching;
+#if WINDOWS
 using Peak.Can.Basic;
+using PCANAppM.Platforms.Windows;
 using System;
 using System.Timers;
 
-#if WINDOWS
-using PCANAppM.Platforms.Windows;
-#endif
-
 namespace PCANAppM.Services
 {
-#if WINDOWS
     public class PcanUsbStatusService
     {
         private static PcanUsbStatusService? _instance;
         public static PcanUsbStatusService Instance => _instance ??= new PcanUsbStatusService();
 
-        private readonly System.Timers.Timer _pollTimer;
-        private bool _isConnected;
-        private string? _deviceName;
-        private PCAN_USB? _pcanUsb;
+        readonly Timer    _pollTimer;
+        bool              _isConnected;
+        string?           _deviceName;
+        PCAN_USB?         _pcanUsb;
 
-        // Add this property for the baud rate
-        public string BaudRate { get; } = "250 kbit/s";
-
-        public bool IsConnected => _isConnected;
-        public string? DeviceName => _deviceName;
-        public PCAN_USB? PcanUsb => _pcanUsb;
-        public event Action? StatusChanged;
+        public string    BaudRate    { get; } = "250 kbit/s";
+        public bool      IsConnected => _isConnected;
+        public string?   DeviceName  => _deviceName;
+        public PCAN_USB? PcanUsb     => _pcanUsb;
+        public event    Action?     StatusChanged;
 
         private PcanUsbStatusService()
         {
-            _pollTimer = new System.Timers.Timer(1000) { AutoReset = true };
-            _pollTimer.Elapsed += (_, _) => PollStatus();
+            _pollTimer = new Timer(500) { AutoReset = true };
+            _pollTimer.Elapsed += (_,__) => PollStatus();
             _pollTimer.Start();
-            PollStatus();
+            PollStatus();  // initial
         }
 
         private void PollStatus()
         {
-            var devices = PCAN_USB.GetUSBDevices();
-            bool connected = devices != null && devices.Count > 0;
-            string? name = connected ? devices[0] : null;
+            var devs      = PCAN_USB.GetUSBDevices();
+            bool nowCon   = devs.Count > 0;
+            string? nowNm = nowCon ? devs[0] : null;
 
-            if (connected && _pcanUsb == null)
+            // ─── plug-in event ───
+            if (nowCon && _pcanUsb == null)
             {
-                _deviceName = name!;
-                var handle = PCAN_USB.DecodePEAKHandle(_deviceName);
-                _pcanUsb = new PCAN_USB();
-                var status = _pcanUsb.InitializeCAN(handle, BaudRate, connected);
+                var handle = PCAN_USB.DecodePEAKHandle(nowNm!);
+                var usb    = new PCAN_USB();
+                var st     = usb.InitializeCAN(handle, BaudRate, true);
+
+                if (st == TPCANStatus.PCAN_ERROR_OK)
+                {
+                    _pcanUsb     = usb;
+                    _deviceName  = nowNm;
+                    _isConnected = true;
+                    StatusChanged?.Invoke();
+                }
+                else
+                {
+                    usb.Uninitialize();
+                }
+
+                return;
             }
 
-            if (connected != _isConnected || name != _deviceName)
+            // ─── unplug event ───
+            if (!nowCon && _pcanUsb != null)
             {
-                _isConnected = connected;
-                _deviceName = name;
+                _pcanUsb.Uninitialize();
+                _pcanUsb    = null;
+                _deviceName = null;
+                _isConnected = false;
                 StatusChanged?.Invoke();
+                return;
             }
+
+            // ─── neither plugged nor just unplugged: do nothing ───
         }
     }
-#endif
 }
+#endif
