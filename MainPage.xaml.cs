@@ -1,110 +1,136 @@
 using System;
-using System.ComponentModel;
+using System.Collections.Generic;
 using Microsoft.Maui.Controls;
-using System.Globalization;
+using System.Threading.Tasks;
 using LocalizationResourceManager.Maui;
+using System.Globalization;
 using PCANAppM.Resources.Languages;
+using PCANAppM;
+
+#if WINDOWS
+using PCANAppM.Platforms.Windows;
 using PCANAppM.Services;
+#endif
 
 namespace PCANAppM
 {
 #if WINDOWS
+
     public partial class MainPage : ContentPage
     {
         private readonly ILocalizationResourceManager _localizationResourceManager;
-        private readonly ICanBusService             _canBusService;
-        private string                               _lastStatus = "";
-        private bool                                 _isDeviceConnected;
-        private bool                                 _sideMenuFirstOpen = true;
+        private readonly PcanUsbStatusService _statusService = PcanUsbStatusService.Instance;
+        //private readonly PcanUsbDeviceService _statusService = PcanUsbDeviceService.Instance;
+        private bool isDeviceConnected;
+        private bool _sideMenuFirstOpen = true;
+        private bool _isLanguageGlowing = false;
+        private bool _isPointerOverLanguageButton = false;
 
-        public MainPage(
-            ILocalizationResourceManager localizationResourceManager,
-            ICanBusService               canBusService
-        )
+        public MainPage(ILocalizationResourceManager localizationResourceManager)
         {
             _localizationResourceManager = localizationResourceManager;
-            _canBusService               = canBusService;
             InitializeComponent();
-
-            // 1) Subscribe to live connection‐status changes
-            _canBusService.PropertyChanged += OnBusPropertyChanged;
+            PcanUsbStatusService.Instance.StatusChanged += UpdateDeviceStatus; 
         }
 
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            // 2) Set initial UI state
+            _statusService.StatusChanged += OnStatusChanged;
             UpdateDeviceStatus();
         }
 
-        private void OnBusPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        protected override void OnDisappearing()
         {
-            if (e.PropertyName == nameof(ICanBusService.IsConnected))
-                UpdateDeviceStatus();
+            base.OnDisappearing();
+            _statusService.StatusChanged -= OnStatusChanged;
         }
+
+        private void OnStatusChanged()
+        {
+            MainThread.BeginInvokeOnMainThread(UpdateDeviceStatus);
+        }
+
+        //private void UpdateDeviceStatus()
+        //{
+        //    if (_statusService.IsConnected)
+        //    {
+        //        StatusLabel.Text = $"{_statusService.DeviceName}  {_localizationResourceManager["Status2"]}";
+        //        StatusImage1.Source = "green_check.png";
+        //        isDeviceConnected = true;
+        //    }
+        //    else
+        //    {
+        //                StatusLabel.Text = _localizationResourceManager["Status1"];
+        //        StatusImage1.Source = "red_ex.png";
+        //        isDeviceConnected = false;
+        //    }
+        //}
 
         private void UpdateDeviceStatus()
         {
-            bool connected = _canBusService.IsConnected;
-            string status  = connected
-                ? $"{_canBusService.DeviceName}  {_localizationResourceManager["Status2"]}"
+            bool connected = PcanUsbStatusService.Instance.IsConnected;
+            string status = connected 
+                ? $"{PcanUsbStatusService.Instance.DeviceName} {_localizationResourceManager["Status2"]}"
                 : _localizationResourceManager["Status1"];
-            string icon    = connected ? "green_check.png" : "red_ex.png";
-            _isDeviceConnected = connected;
+            string icon     = connected ? "green_check.png" : "red_ex.png";
 
-            // only update UI when it actually changed
-            if (status != _lastStatus)
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                _lastStatus = status;
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    StatusLabel.Text   = status;
-                    StatusImage1.Source = icon;
-                });
-            }
+                StatusLabel.Text = status;
+                StatusImage1.Source = icon;
+            });
         }
 
         private async void OnStatusImageClicked(object sender, EventArgs e)
         {
-            if (_isDeviceConnected)
+            if (isDeviceConnected)
             {
-                await Navigation.PushAsync(new Menu(_localizationResourceManager, _canBusService));
+                await Navigation.PushAsync(new Menu(_localizationResourceManager));
             }
             else
             {
                 ConnectionDialog.IsVisible = true;
-                MainContent.IsVisible      = false;
+                MainContent.IsVisible = false; // Hide all except header and dialog
             }
         }
 
         private void OnConnectionDialogOkClicked(object sender, EventArgs e)
         {
-            MainContent.IsVisible      = true;
+            MainContent.IsVisible = true; // Show main content again
             ConnectionDialog.IsVisible = false;
         }
 
         private void OnLanguageButtonClicked(object sender, EventArgs e)
         {
-            LanguageState.CurrentLanguage =
-                LanguageState.CurrentLanguage == "en" ? "es" : "en";
-            _localizationResourceManager.CurrentCulture =
-                new CultureInfo(LanguageState.CurrentLanguage);
+            LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
+            _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
         }
 
         private async void OnNextButtonClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new Menu(_localizationResourceManager, _canBusService));
+            await Navigation.PushAsync(new Menu(_localizationResourceManager));
+        }
+
+        private void StatusImage1_Clicked(object sender, EventArgs e)
+        {
+
         }
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible    = true;
+            SideMenu.IsVisible = true;
             SideMenuDim.IsVisible = true;
 
             if (SideMenu.Width == 0)
+            {
+                // Wait for the menu to be measured, then animate
                 SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
+            }
             else
+            {
                 AnimateSideMenuIn();
+            }
         }
 
         private async void SideMenu_SizeChangedAnimateIn(object? sender, EventArgs e)
@@ -122,43 +148,51 @@ namespace PCANAppM
             await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
         }
 
+        private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
+        {
+            SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
+            _sideMenuFirstOpen = false;
+            SideMenu.TranslationX = -SideMenu.Width;
+            await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
+        }
+
         private async void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn); // Slide out
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
         }
 
         private async void OnMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
-            await Navigation.PushAsync(new Menu(_localizationResourceManager, _canBusService));
+            await Navigation.PushAsync(new Menu(_localizationResourceManager));
         }
 
         private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
-            await Navigation.PushAsync(new BAS(_localizationResourceManager, _canBusService));
+            await Navigation.PushAsync(new BAS(_localizationResourceManager));
         }
 
         private async void OnKzValveMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
-            await Navigation.PushAsync(new KZV(_localizationResourceManager, _canBusService));
+            await Navigation.PushAsync(new KZV(_localizationResourceManager));
         }
 
         private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
-            await Navigation.PushAsync(new FTLS(_localizationResourceManager, _canBusService));
+            await Navigation.PushAsync(new FTLS(_localizationResourceManager));
         }
     }
 
