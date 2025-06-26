@@ -2,7 +2,6 @@
 
 using System;
 using System.Globalization;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -15,18 +14,17 @@ using Timer = System.Timers.Timer;
 
 namespace PCANAppM
 {
-
     public partial class BAS : ContentPage
     {
         readonly ILocalizationResourceManager _loc;
         readonly ICanBusService               _bus;
 
-        string?                             _currentCanId;
-        string?                             _pendingCanId;
-        bool                                _isStarted;
-        bool                                _isAngleSensorConnected;
-        System.Timers.Timer?                _connectionTimeoutTimer;
-        bool                                _sideMenuFirstOpen = true;
+        string?      _currentCanId;
+        string?      _pendingCanId;
+        bool         _isStarted;
+        bool         _isAngleSensorConnected;
+        Timer?       _connectionTimeoutTimer;
+        bool         _sideMenuFirstOpen = true;
 
         public BAS(
             ILocalizationResourceManager loc,
@@ -50,7 +48,6 @@ namespace PCANAppM
 
         private void OnFrameReceived(PCAN_USB.Packet packet)
         {
-            // detect your device’s PGN
             uint pgn = (packet.Id >> 8) & 0xFFFF;
             if (pgn == 0xFFBB)
             {
@@ -58,7 +55,6 @@ namespace PCANAppM
                 ResetConnectionTimeout();
             }
 
-            // extract last‐two hex digits as decimal
             var idHex = $"0x{packet.Id:X}";
             var lastTwo = idHex.Length >= 2
                 ? idHex.Substring(idHex.Length - 2)
@@ -77,7 +73,7 @@ namespace PCANAppM
         private void ResetConnectionTimeout()
         {
             _connectionTimeoutTimer?.Stop();
-            _connectionTimeoutTimer = new System.Timers.Timer(2000) { AutoReset = false };
+            _connectionTimeoutTimer = new Timer(2000) { AutoReset = false };
             _connectionTimeoutTimer.Elapsed += (_, __) =>
             {
                 _isAngleSensorConnected = false;
@@ -86,16 +82,16 @@ namespace PCANAppM
             _connectionTimeoutTimer.Start();
         }
 
-        // ─── Set CAN ID flow ─────────────────────────────────────────────────────
-
-        private void OnLanguageButtonClicked(object sender, EventArgs e) 
+        // ─── Language toggle ─────────────────────────────────────────────────────
+        private void OnLanguageButtonClicked(object sender, EventArgs e)
         {
-            LanguageState.CurrentLanguage = 
-                LanguageState.CurrentLanguage == "en" ? "es" : "en"; 
-            _loc.CurrentCulture = new System.Globalization.CultureInfo(LanguageState.CurrentLanguage); 
+            LanguageState.CurrentLanguage =
+                LanguageState.CurrentLanguage == "en" ? "es" : "en";
+            _loc.CurrentCulture =
+                new CultureInfo(LanguageState.CurrentLanguage);
         }
 
-
+        // ─── Set CAN ID flow ──────────────────────────────────────────────────────
         private void OnSetCanIdClicked(object sender, EventArgs e)
         {
             SetCanIdView1.IsVisible = true;
@@ -106,7 +102,7 @@ namespace PCANAppM
         {
             var text = NewCanIdEntry1.Text?.Trim();
             if (string.IsNullOrEmpty(text)
-                || !int.TryParse(text, out int newCanId)
+                || !int.TryParse(text, out var newCanId)
                 || newCanId < 0
                 || newCanId > 255)
             {
@@ -117,11 +113,11 @@ namespace PCANAppM
                 return;
             }
 
-            ConfirmText1.Text = $"Set The CAN ID to {newCanId}";
-            SetCanIdView1.IsVisible     = false;
-            ConfirmCanIdView1.IsVisible = true;
-            _pendingCanId               = newCanId.ToString();
-            NewCanIdEntry1.Text         = string.Empty;
+            ConfirmText1.Text            = $"Set The CAN ID to {newCanId}";
+            SetCanIdView1.IsVisible      = false;
+            ConfirmCanIdView1.IsVisible  = true;
+            _pendingCanId                = newCanId.ToString();
+            NewCanIdEntry1.Text          = string.Empty;
         }
 
         private void OnCancelConfirmClicked1(object sender, EventArgs e)
@@ -132,43 +128,44 @@ namespace PCANAppM
 
         private async void OnConfirmClicked(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(_pendingCanId)) return;
+            if (string.IsNullOrEmpty(_pendingCanId)) 
+                return;
 
-            // build your two‐step protocol (4 messages)
-            int.TryParse(_currentCanId, out int currId);
-            byte currByte = (byte) currId;
-            byte newByte  = (byte) int.Parse(_pendingCanId);
+            if (!int.TryParse(_currentCanId, out var currId)) 
+                currId = 0;
+            var currByte = (byte)currId;
+            var newByte  = (byte)int.Parse(_pendingCanId);
 
-            // msg #1
+            // your 4-msg protocol:
             _bus.SendFrame(
                 uint.Parse($"18EA{currByte:X2}00", NumberStyles.HexNumber),
                 new byte[]{0x00,0xEF,0x00,0x00,0x00,0x00,0x00,0x00},
-                extended: true);
-            // msg #2
+                extended: true
+            );
             _bus.SendFrame(
                 uint.Parse($"18EF{currByte:X2}00", NumberStyles.HexNumber),
                 new byte[]{0x06,newByte,0x00,0xFF,0xFF,0xFF,0xFF,0xFF},
-                extended: true);
-            // msg #3
+                extended: true
+            );
             _bus.SendFrame(
                 uint.Parse($"18EA{currByte:X2}00", NumberStyles.HexNumber),
                 new byte[]{0x00,0xEF,0x00,0x00,0x00,0x00,0x00,0x00},
-                extended: true);
-            // msg #4
+                extended: true
+            );
             _bus.SendFrame(
                 uint.Parse($"18EF{currByte:X2}00", NumberStyles.HexNumber),
                 new byte[]{0xFA,0x73,0x61,0x76,0x65,0x00,0x00,0x00},
-                extended: true);
+                extended: true
+            );
 
             ConfirmCanIdView1.IsVisible = false;
             InitialBasView.IsVisible    = true;
         }
 
-        // ─── Connection Status popup ────────────────────────────────────────────
-
+        // ─── Connection-status pop-up ────────────────────────────────────────────
         private async void OnAngleSensorStatusClicked(object sender, EventArgs e)
         {
-            string msg = _isAngleSensorConnected
+            var msg = _isAngleSensorConnected
                 ? "Angle Sensor is CONNECTED."
                 : "Angle Sensor is NOT CONNECTED.";
             await DisplayAlert("Connection Status", msg, "OK");
@@ -176,14 +173,18 @@ namespace PCANAppM
 
         private async void OnAngleSensorButtonClicked(object sender, EventArgs e)
         {
-            await Navigation.PushAsync(new ASConnectionStatusPage(_isAngleSensorConnected));
+            await Navigation.PushAsync(
+                new ASConnectionStatusPage(_isAngleSensorConnected)
+            );
         }
 
-        // ─── Side-menu (exactly your existing handlers) ──────────────────────────
-
-        private async void OnCheckConnectionClicked(object sender, EventArgs e) 
+        // ─── Side-menu handlers ───────────────────────────────────────────────────
+        private async void OnCheckConnectionClicked(object sender, EventArgs e)
         {
-            bool isConnected = _bus.IsConnected;
+            var msg = _isAngleSensorConnected
+                ? "Angle Sensor is CONNECTED."
+                : "Angle Sensor is NOT CONNECTED.";
+            await DisplayAlert("Connection Status", msg, "OK");
         }
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
@@ -193,7 +194,7 @@ namespace PCANAppM
             if (SideMenu.Width == 0)
                 SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
             else
-                AnimateSideMenuIn();
+                _ = AnimateSideMenuIn();
         }
 
         private async void SideMenu_SizeChangedAnimateIn(object? sender, EventArgs e)
@@ -205,17 +206,14 @@ namespace PCANAppM
             }
         }
 
-        private async Task AnimateSideMenuIn()
-        {
-            SideMenu.TranslationX = -SideMenu.Width;
-            await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
-        }
+        private Task AnimateSideMenuIn() =>
+            SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
 
         private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
         {
             SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
-            _sideMenuFirstOpen     = false;
-            SideMenu.TranslationX  = -SideMenu.Width;
+            _sideMenuFirstOpen = false;
+            SideMenu.TranslationX = -SideMenu.Width;
             await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
         }
 
@@ -228,33 +226,25 @@ namespace PCANAppM
 
         private async void OnMenuClicked(object sender, EventArgs e)
         {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
-            SideMenuDim.IsVisible = false;
+            await AnimateSideMenuIn();
             await Navigation.PushAsync(new Menu(_loc, _bus));
         }
 
         private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
         {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
-            SideMenuDim.IsVisible = false;
+            await AnimateSideMenuIn();
             await Navigation.PushAsync(new BAS(_loc, _bus));
         }
 
         private async void OnKzValveMenuClicked(object sender, EventArgs e)
         {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
-            SideMenuDim.IsVisible = false;
+            await AnimateSideMenuIn();
             await Navigation.PushAsync(new KZV(_loc, _bus));
         }
 
         private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
         {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
-            SideMenuDim.IsVisible = false;
+            await AnimateSideMenuIn();
             await Navigation.PushAsync(new FTLS(_loc, _bus));
         }
     }
