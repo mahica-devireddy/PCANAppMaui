@@ -46,7 +46,7 @@ namespace PCANAppM
             _bus.FrameReceived -= OnFrameReceived;
         }
 
-        private void OnFrameReceived(PCAN_USB.Packet packet)
+        void OnFrameReceived(PCAN_USB.Packet packet)
         {
             uint pgn = (packet.Id >> 8) & 0xFFFF;
             if (pgn == 0xFFBB)
@@ -60,13 +60,16 @@ namespace PCANAppM
                 ? idHex.Substring(idHex.Length - 2)
                 : idHex;
 
-            if (int.TryParse(lastTwo, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int canIdInt))
+            if (int.TryParse(
+                lastTwo, NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture, out var cid))
             {
-                _currentCanId = canIdInt.ToString();
+                _currentCanId = cid.ToString();
                 MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    LatestCanIdLabel1.Text = $"{_loc["CurrentBAS"]} {_currentCanId}";
-                });
+                    LatestCanIdLabel1.Text =
+                        $"{_loc["CurrentBAS"]} {_currentCanId}"
+                );
+            
             }
         }
 
@@ -100,11 +103,10 @@ namespace PCANAppM
 
         private async void OnSetClicked(object sender, EventArgs e)
         {
-            var text = NewCanIdEntry1.Text?.Trim();
-            if (string.IsNullOrEmpty(text)
-                || !int.TryParse(text, out var newCanId)
-                || newCanId < 0
-                || newCanId > 255)
+            var txt = NewCanIdEntry1.Text?.Trim();
+            if (string.IsNullOrEmpty(txt)
+                || !int.TryParse(txt, out var nid)
+                || nid < 0 || nid > 255)
             {
                 await DisplayAlert(
                     _loc["Error"],
@@ -113,10 +115,10 @@ namespace PCANAppM
                 return;
             }
 
-            ConfirmText1.Text            = $"Set The CAN ID to {newCanId}";
+            ConfirmText1.Text            = $"Set The CAN ID to {nid}";
             SetCanIdView1.IsVisible      = false;
             ConfirmCanIdView1.IsVisible  = true;
-            _pendingCanId                = newCanId.ToString();
+            _pendingCanId                = nid.ToString();
             NewCanIdEntry1.Text          = string.Empty;
         }
 
@@ -126,34 +128,39 @@ namespace PCANAppM
             InitialBasView.IsVisible    = true;
         }
 
+        private void OnExitClicked(object sender, EventArgs e)
+        {
+            SetCanIdView1.IsVisible      = false;
+            InitialBasView.IsVisible    = true;
+            ConfirmCanIdView1.IsVisible  = false;
+        }
+
         private async void OnConfirmClicked(object sender, EventArgs e)
         {
-            if (string.IsNullOrEmpty(_pendingCanId)) 
-                return;
+            if (string.IsNullOrEmpty(_pendingCanId)) return;
 
-            if (!int.TryParse(_currentCanId, out var currId)) 
-                currId = 0;
-            var currByte = (byte)currId;
-            var newByte  = (byte)int.Parse(_pendingCanId);
+            if (!int.TryParse(_currentCanId, out var cur)) cur = 0;
+            byte currB = (byte)cur;
+            byte newB  = (byte)int.Parse(_pendingCanId);
 
             // your 4-msg protocol:
             _bus.SendFrame(
-                uint.Parse($"18EA{currByte:X2}00", NumberStyles.HexNumber),
+                uint.Parse($"18EA{currB:X2}00", NumberStyles.HexNumber),
                 new byte[]{0x00,0xEF,0x00,0x00,0x00,0x00,0x00,0x00},
                 extended: true
             );
             _bus.SendFrame(
-                uint.Parse($"18EF{currByte:X2}00", NumberStyles.HexNumber),
-                new byte[]{0x06,newByte,0x00,0xFF,0xFF,0xFF,0xFF,0xFF},
+                uint.Parse($"18EF{currB:X2}00", NumberStyles.HexNumber),
+                new byte[]{0x06,newB,0x00,0xFF,0xFF,0xFF,0xFF,0xFF},
                 extended: true
             );
             _bus.SendFrame(
-                uint.Parse($"18EA{currByte:X2}00", NumberStyles.HexNumber),
+                uint.Parse($"18EA{currB:X2}00", NumberStyles.HexNumber),
                 new byte[]{0x00,0xEF,0x00,0x00,0x00,0x00,0x00,0x00},
                 extended: true
             );
             _bus.SendFrame(
-                uint.Parse($"18EF{currByte:X2}00", NumberStyles.HexNumber),
+                uint.Parse($"18EF{currB:X2}00", NumberStyles.HexNumber),
                 new byte[]{0xFA,0x73,0x61,0x76,0x65,0x00,0x00,0x00},
                 extended: true
             );
