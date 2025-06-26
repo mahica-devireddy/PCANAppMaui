@@ -155,3 +155,81 @@ namespace PCANAppM
     }
 #endif
 }
+
+using LocalizationResourceManager.Maui;
+using PCANAppM.Services;
+using Microsoft.Maui.Controls;
+using System.Globalization;
+
+namespace PCANAppM
+{
+#if WINDOWS
+    public partial class MainPage : ContentPage
+    {
+        readonly ILocalizationResourceManager _loc;
+        readonly ICanBusService _bus;
+        bool _haveDevice;
+
+        public MainPage(ILocalizationResourceManager loc, ICanBusService bus)
+        {
+            InitializeComponent();
+            _loc = loc;
+            _bus = bus;
+            _bus.PropertyChanged += OnBusChanged;
+            UpdateUI();
+        }
+
+        void OnBusChanged(object s, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ICanBusService.IsConnected))
+                MainThread.BeginInvokeOnMainThread(UpdateUI);
+        }
+
+        void UpdateUI()
+        {
+            _haveDevice = _bus.IsConnected;
+            if (_haveDevice)
+            {
+                StatusLabel.Text   = $"{_bus.DeviceName} {_loc["Status2"]}";
+                StatusImage1.Source = "green_check.png";
+            }
+            else
+            {
+                StatusLabel.Text   = _loc["Status1"];
+                StatusImage1.Source = "red_ex.png";
+            }
+        }
+
+        async void OnStatusImageClicked(object _, EventArgs __)
+        {
+            if (_haveDevice)
+                await Navigation.PushAsync(new Menu(_loc));
+            else
+            {
+                ConnectionDialog.IsVisible = true;
+                MainContent.IsVisible = false;
+            }
+        }
+
+        void OnConnectionDialogOkClicked(object _, EventArgs __)
+        {
+            ConnectionDialog.IsVisible = false;
+            MainContent.IsVisible = true;
+        }
+
+        void OnLanguageButtonClicked(object _, EventArgs __)
+        {
+            LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
+            _loc.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
+        }
+
+        // … your side‐menu handlers (OnOshkoshLogoClicked, OnMenuClicked, etc.) stay exactly as you had them …
+    }
+
+    public static class LanguageState
+    {
+        public static string CurrentLanguage { get; set; } = "en";
+    }
+#endif
+}
+
