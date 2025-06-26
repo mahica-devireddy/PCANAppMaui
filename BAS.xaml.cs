@@ -1,3 +1,5 @@
+#if WINDOWS
+
 using System;
 using System.Globalization;
 using System.Linq;
@@ -9,10 +11,11 @@ using PCANAppM.Services;       // ← your single service
 using PCANAppM.Platforms.Windows;
 using PCANAppM.Resources.Languages;
 using Peak.Can.Basic;
+using Timer = System.Timers.Timer;
 
 namespace PCANAppM
 {
-#if WINDOWS
+
     public partial class BAS : ContentPage
     {
         readonly ILocalizationResourceManager _loc;
@@ -84,6 +87,14 @@ namespace PCANAppM
         }
 
         // ─── Set CAN ID flow ─────────────────────────────────────────────────────
+
+        private void OnLanguageButtonClicked(object sender, EventArgs e) 
+        {
+            LanguageState.CurrentLanguage = 
+                LanguageState.CurrentLanguage == "en" ? "es" : "en"; 
+            _loc.CurrentCulture = new System.Globalization.CultureInfo(LanguageState.CurrentLanguage); 
+        }
+
 
         private void OnSetCanIdClicked(object sender, EventArgs e)
         {
@@ -170,6 +181,11 @@ namespace PCANAppM
 
         // ─── Side-menu (exactly your existing handlers) ──────────────────────────
 
+        private async void OnCheckConnectionClicked(object sender, EventArgs e) 
+        {
+            bool isConnected = _bus.IsConnected;
+        }
+
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
             SideMenu.IsVisible    = true;
@@ -242,5 +258,5 @@ namespace PCANAppM
             await Navigation.PushAsync(new FTLS(_loc, _bus));
         }
     }
-#endif
 }
+#endif
