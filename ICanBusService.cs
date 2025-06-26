@@ -1,10 +1,13 @@
-// in Services/ICanBusService.cs
+#if WINDOWS
+
+using System;
 using Peak.Can.Basic;
 using System;
+using PCANAppM.Platforms.Windows;
 
 namespace PCANAppM.Services
 {
-#if WINDOWS
+
     public interface ICanBusService
     {
         /// <summary>True when the PCAN USB is plugged in AND initialized.</summary>
@@ -22,5 +25,5 @@ namespace PCANAppM.Services
         /// <summary>Send a CAN frame on the shared bus.</summary>
         void SendFrame(uint id, byte[] data, bool extended);
     }
-#endif
 }
+#endif
