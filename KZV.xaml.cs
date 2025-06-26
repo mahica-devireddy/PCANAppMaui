@@ -1,16 +1,13 @@
 #if WINDOWS
-
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
-using Microsoft.Maui;
+using System.Timers;
 using Microsoft.Maui.Controls;
 using LocalizationResourceManager.Maui;
-using PCANAppM.Services;           // ← our single service
+using PCANAppM.Services;
 using PCANAppM.Platforms.Windows;
 using PCANAppM.Resources.Languages;
-using Peak.Can.Basic;
-using Timer = System.Timers.Timer;
 
 namespace PCANAppM
 {
@@ -32,10 +29,8 @@ namespace PCANAppM
         )
         {
             InitializeComponent();
-            _loc = loc;
-            _bus = bus;
-
-            // subscribe to incoming CAN frames
+            _loc       = loc;
+            _bus       = bus;
             _bus.FrameReceived += OnFrameReceived;
             _isStarted = _bus.IsConnected;
         }
@@ -46,9 +41,9 @@ namespace PCANAppM
             _bus.FrameReceived -= OnFrameReceived;
         }
 
-        void OnFrameReceived(PCAN_USB.Packet packet)
+        // Called on every incoming CAN frame
+        private void OnFrameReceived(PCAN_USB.Packet packet)
         {
-            // detect your KZV PGN
             uint pgn = (packet.Id >> 8) & 0xFFFF;
             if (pgn == 0xFECA)
             {
@@ -56,25 +51,21 @@ namespace PCANAppM
                 ResetConnectionTimeout();
             }
 
-            // extract last 2 hex digits to display
             var idHex = $"0x{packet.Id:X}";
             var lastTwo = idHex.Length >= 2
                 ? idHex.Substring(idHex.Length - 2)
                 : idHex;
 
-            if (int.TryParse(
-                lastTwo, NumberStyles.HexNumber,
-                CultureInfo.InvariantCulture, out var cid))
+            if (int.TryParse(lastTwo, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var canIdInt))
             {
-                _currentCanId = cid.ToString();
+                _currentCanId = canIdInt.ToString();
                 MainThread.BeginInvokeOnMainThread(() =>
-                    LatestCanIdLabel.Text =
-                        $"{_loc["CurrentKZV"]} {_currentCanId}"
+                    LatestCanIdLabel.Text = $"{_loc["CurrentKZV"]} {_currentCanId}"
                 );
             }
         }
 
-        void ResetConnectionTimeout()
+        private void ResetConnectionTimeout()
         {
             _connectionTimeoutTimer?.Stop();
             _connectionTimeoutTimer = new Timer(2000) { AutoReset = false };
@@ -86,7 +77,7 @@ namespace PCANAppM
             _connectionTimeoutTimer.Start();
         }
 
-        // ─── Language toggle ─────────────────────────────────────────────────────
+        // ─── Language Toggle ─────────────────────────────────────────────
         private void OnLanguageButtonClicked(object sender, EventArgs e)
         {
             LanguageState.CurrentLanguage =
@@ -95,64 +86,63 @@ namespace PCANAppM
                 new CultureInfo(LanguageState.CurrentLanguage);
         }
 
-        // ─── Set CAN ID flow ─────────────────────────────────────────────────────
+        // ─── “Set CAN ID” Flow ────────────────────────────────────────────
         private void OnSetCanIdClicked(object sender, EventArgs e)
         {
-            SetCanIdView.IsVisible   = true;
-            InitialKzvView.IsVisible = false;
+            SetCanIdView.IsVisible    = true;
+            InitialKzvView.IsVisible   = false;
         }
 
         private async void OnSetClicked(object sender, EventArgs e)
         {
-            var txt = NewCanIdEntry.Text?.Trim();
-            if (string.IsNullOrEmpty(txt)
-                || !int.TryParse(txt, out var nid)
-                || nid < 0 || nid > 255)
+            var text = NewCanIdEntry.Text?.Trim();
+            if (string.IsNullOrEmpty(text)
+                || !int.TryParse(text, out var newId)
+                || newId < 0
+                || newId > 255)
             {
                 await DisplayAlert(
                     _loc["Error"],
                     _loc["Please enter a valid CAN ID value between 0-255."],
-                    "OK");
+                    "OK"
+                );
                 return;
             }
 
-            ConfirmText.Text           = $"Set The CAN ID to {nid}";
-            SetCanIdView.IsVisible     = false;
-            ConfirmCanIdView.IsVisible = true;
-            _pendingCanId              = nid.ToString();
-            NewCanIdEntry.Text         = string.Empty;
+            ConfirmText.Text     = $"Set The CAN ID to {newId}";
+            SetCanIdView.IsVisible      = false;
+            ConfirmCanIdView.IsVisible  = true;
+            _pendingCanId               = newId.ToString();
+            NewCanIdEntry.Text          = string.Empty;
         }
 
         private void OnCancelConfirmClicked(object sender, EventArgs e)
         {
             ConfirmCanIdView.IsVisible = false;
-            InitialKzvView.IsVisible   = true;
+            InitialKzvView.IsVisible    = true;
         }
 
         private void OnExitClicked(object sender, EventArgs e)
         {
             SetCanIdView.IsVisible      = false;
-            InitialKzvView.IsVisible    = true;
-            ConfirmCanIdView.IsVisible  = false;
+            InitialKzvView.IsVisible     = true;
+            ConfirmCanIdView.IsVisible   = false;
         }
 
         private async void OnConfirmClicked(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_pendingCanId)) return;
+            if (!int.TryParse(_currentCanId, out var curr)) curr = 0;
+            byte currB = (byte)curr;
+            byte newB  = (byte)int.Parse(_pendingCanId);
 
-            if (!int.TryParse(_currentCanId, out var cur)) cur = 0;
-            byte curB = (byte)cur;
-            byte newB = (byte)int.Parse(_pendingCanId);
-
-            // build CAN ID per your protocol
             uint canId = (0x18EF0000u)
-                       | ((uint)curB << 8)
+                       | ((uint)currB << 8)
                        | 0x01u;
 
-            // 8-byte payload: byte[3]=0x04, byte[4]=newB
             var data = new byte[8];
-            data[3] = 0x04;
-            data[4] = newB;
+            data[3]  = 0x04;
+            data[4]  = newB;
 
             _bus.SendFrame(canId, data, extended: true);
 
@@ -160,17 +150,16 @@ namespace PCANAppM
             InitialKzvView.IsVisible   = true;
         }
 
-        // ─── Check-Connection Dialog ──────────────────────────────────────────────
+        // ─── Check Connection Dialog ───────────────────────────────────────
         private async void OnCheckConnectionClicked(object sender, EventArgs e)
         {
-            var msg = _isKZVConnected
+            string msg = _isKZVConnected
                 ? "KZ Valve is CONNECTED."
                 : "KZ Valve is NOT CONNECTED.";
             await DisplayAlert("Connection Status", msg, "OK");
         }
 
-        // ─── Side-menu Handlers ────────────────────────────────────────────────────
-
+        // ─── Side‐Menu Logic ────────────────────────────────────────────────
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
             SideMenu.IsVisible    = true;
@@ -181,23 +170,15 @@ namespace PCANAppM
                 _ = AnimateSideMenuIn();
         }
 
-        private async void SideMenu_SizeChangedAnimateIn(object? sender, EventArgs e)
+        private async void SideMenu_SizeChangedAnimateIn(object sender, EventArgs e)
         {
-            if (SideMenu.Width > 0)
-            {
-                SideMenu.SizeChanged -= SideMenu_SizeChangedAnimateIn;
-                await AnimateSideMenuIn();
-            }
+            SideMenu.SizeChanged -= SideMenu_SizeChangedAnimateIn;
+            await AnimateSideMenuIn();
         }
 
-        private Task AnimateSideMenuIn() =>
-            SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
-
-        private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
+        private async Task AnimateSideMenuIn()
         {
-            SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
-            _sideMenuFirstOpen     = false;
-            SideMenu.TranslationX  = -SideMenu.Width;
+            SideMenu.TranslationX = -SideMenu.Width;
             await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
         }
 
@@ -209,29 +190,16 @@ namespace PCANAppM
         }
 
         private async void OnMenuClicked(object sender, EventArgs e)
-        {
-            await AnimateSideMenuIn();
-            await Navigation.PushAsync(new Menu(_loc, _bus));
-        }
+            => await Navigation.PushAsync(new Menu(_loc, _bus));
 
         private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
-        {
-            await AnimateSideMenuIn();
-            await Navigation.PushAsync(new BAS(_loc, _bus));
-        }
+            => await Navigation.PushAsync(new BAS(_loc, _bus));
 
         private async void OnKzValveMenuClicked(object sender, EventArgs e)
-        {
-            await AnimateSideMenuIn();
-            await Navigation.PushAsync(new KZV(_loc, _bus));
-        }
+            => await Navigation.PushAsync(new KZV(_loc, _bus));
 
         private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
-        {
-            await AnimateSideMenuIn();
-            await Navigation.PushAsync(new FTLS(_loc, _bus));
-        }
+            => await Navigation.PushAsync(new FTLS(_loc, _bus));
     }
 }
-
 #endif
