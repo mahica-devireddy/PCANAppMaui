@@ -12,3 +12,40 @@
         Route="MainPage" />
 
 </Shell>
+<?xml version="1.0" encoding="utf-8" ?>
+<Shell
+    x:Class="PCANAppM.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    <!-- alias for your own pages -->
+    xmlns:views="clr-namespace:PCANAppM"
+    <!-- alias for the Translate extension -->
+    xmlns:loc="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"
+    shell:Shell.NavBarIsVisible="False">
+
+  <!-- Home -->
+  <FlyoutItem Title="{loc:Translate Home}" Icon="home.png">
+    <ShellContent ContentTemplate="{DataTemplate views:MainPage}" />
+  </FlyoutItem>
+
+  <!-- Menu -->
+  <FlyoutItem Title="{loc:Translate Menu}" Icon="menu.png">
+    <ShellContent ContentTemplate="{DataTemplate views:Menu}" />
+  </FlyoutItem>
+
+  <!-- BAS page -->
+  <FlyoutItem Title="{loc:Translate BAS}" Icon="angle_sensor.png">
+    <ShellContent ContentTemplate="{DataTemplate views:BAS}" />
+  </FlyoutItem>
+
+  <!-- KZV page -->
+  <FlyoutItem Title="{loc:Translate KZV}" Icon="valve.png">
+    <ShellContent ContentTemplate="{DataTemplate views:KZV}" />
+  </FlyoutItem>
+
+  <!-- FTLS page -->
+  <FlyoutItem Title="{loc:Translate FTLS}" Icon="tank_level.png">
+    <ShellContent ContentTemplate="{DataTemplate views:FTLS}" />
+  </FlyoutItem>
+
+</Shell>
