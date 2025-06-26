@@ -1,11 +1,6 @@
+// in Services/ICanBusService.cs
 using Peak.Can.Basic;
 using System;
-using PCANAppM;
-using System;
-
-#if WINDOWS
-using PCANAppM.Platforms.Windows;
-#endif
 
 namespace PCANAppM.Services
 {
@@ -18,13 +13,13 @@ namespace PCANAppM.Services
         /// <summary>The device string from GetUSBDevices()[0], or null if none.</summary>
         string? DeviceName { get; }
 
-        /// <summary>Raised on every incoming CAN frame (on the UI thread).</summary>
+        /// <summary>Fires whenever IsConnected changes (debounced).</summary>
+        event Action? StatusChanged;
+
+        /// <summary>Fires on every incoming CAN frame (on the UI thread).</summary>
         event Action<PCAN_USB.Packet>? FrameReceived;
 
         /// <summary>Send a CAN frame on the shared bus.</summary>
-        /// <param name="id">CAN ID.</param>
-        /// <param name="data">Payload bytes.</param>
-        /// <param name="extended">True for extended ID (> 0x7FF).</param>
         void SendFrame(uint id, byte[] data, bool extended);
     }
 #endif
