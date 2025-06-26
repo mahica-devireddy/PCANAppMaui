@@ -17,37 +17,67 @@ public partial class KZV : ContentPage
     private string? _currentCanId = null;
     private string? _pendingNewCanId = null;
     private readonly ILocalizationResourceManager _localizationResourceManager;
-
     private bool _isStarted = false;
-    private bool _sideMenuFirstOpen = true;
-    private bool _isKZVConnected = false;
     private System.Timers.Timer? _connectionTimeoutTimer;
+    private bool _isKZVConnected = false; // Added field to resolve CS0103
+    private bool _sideMenuFirstOpen = true; // Added field to resolve CS0103
 
-    // Use the shared service for device access
-    private PCAN_USB? PcanUsb => PcanUsbStatusService.Instance.IsConnected ? PcanUsbStatusService.Instance.PcanUsb : null;
+    // Access the global device
+    private PCAN_USB? PcanUsb => PcanUsbStatusService.Instance.PcanUsb;
 
     public KZV(ILocalizationResourceManager localizationResourceManager)
     {
         _localizationResourceManager = localizationResourceManager;
         InitializeComponent();
 
-        if (!PcanUsbStatusService.Instance.IsConnected || PcanUsb == null)
-        {
-            DisplayAlert("Error", "No PCAN devices found.", "OK");
-            return;
-        }
+        // Listen for device status changes to re-attach events if needed
+        PcanUsbStatusService.Instance.StatusChanged += OnDeviceStatusChanged;
+    }
 
-        SubscribeToPcanUsbEvents();
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        TrySubscribeToPcanUsbEvents();
         _isStarted = true;
     }
 
-    private void SubscribeToPcanUsbEvents()
+    protected override void OnDisappearing()
     {
-        if (PcanUsb == null) return;
-        PcanUsb.MessageReceived += OnCanMessageReceived;
-        PcanUsb.Feedback += OnPcanFeedback;
+        base.OnDisappearing();
+        TryUnsubscribeFromPcanUsbEvents();
+        _isStarted = false;
     }
 
+    private void OnDeviceStatusChanged()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            TryUnsubscribeFromPcanUsbEvents();
+            TrySubscribeToPcanUsbEvents();
+        });
+    }
+
+    private void TrySubscribeToPcanUsbEvents()
+    {
+        if (PcanUsb != null)
+        {
+            PcanUsb.MessageReceived -= OnCanMessageReceived; // Prevent double subscription
+            PcanUsb.MessageReceived += OnCanMessageReceived;
+            PcanUsb.Feedback -= OnPcanFeedback;
+            PcanUsb.Feedback += OnPcanFeedback;
+        }
+    }
+
+    private void TryUnsubscribeFromPcanUsbEvents()
+    {
+        if (PcanUsb != null)
+        {
+            PcanUsb.MessageReceived -= OnCanMessageReceived;
+            PcanUsb.Feedback -= OnPcanFeedback;
+        }
+    }
+
+    // This method is called by the global device when a CAN message is received
     private void OnCanMessageReceived(PCAN_USB.Packet packet)
     {
         uint canId = packet.Id;
