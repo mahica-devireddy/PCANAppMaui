@@ -129,6 +129,13 @@ namespace PCANAppM
             InitialKzvView.IsVisible   = true;
         }
 
+        private void OnExitClicked(object sender, EventArgs e)
+        {
+            SetCanIdView.IsVisible      = false;
+            InitialKzvView.IsVisible    = true;
+            ConfirmCanIdView.IsVisible  = false;
+        }
+
         private async void OnConfirmClicked(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(_pendingCanId)) return;
