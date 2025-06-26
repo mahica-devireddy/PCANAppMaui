@@ -173,3 +173,110 @@ namespace PCANAppM
     }
 #endif
 }
+using System;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.ApplicationModel;       // for MainThread
+using LocalizationResourceManager.Maui;
+using System.Globalization;
+using PCANAppM.Resources.Languages;
+using PCANAppM.Services;
+
+#if WINDOWS
+namespace PCANAppM
+{
+    public partial class MainPage : ContentPage
+    {
+        readonly ILocalizationResourceManager _localizationResourceManager;
+        readonly PcanUsbStatusService        _statusService;
+        bool                                 _isDeviceConnected;
+        string                               _lastStatus = "";
+
+        public MainPage(ILocalizationResourceManager localizationResourceManager)
+        {
+            _localizationResourceManager = localizationResourceManager;
+            _statusService               = PcanUsbStatusService.Instance;
+            InitializeComponent();
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            // Subscribe to flips
+            _statusService.StatusChanged += OnStatusChanged;
+            // Seed UI state right away
+            UpdateDeviceStatus();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            _statusService.StatusChanged -= OnStatusChanged;
+        }
+
+        void OnStatusChanged()
+        {
+            // Ensure we update on UI thread
+            MainThread.BeginInvokeOnMainThread(UpdateDeviceStatus);
+        }
+
+        void UpdateDeviceStatus()
+        {
+            bool connected = _statusService.IsConnected;
+            _isDeviceConnected = connected;
+
+            string status = connected
+                ? $"{_statusService.DeviceName}  {_localizationResourceManager["Status2"]}"
+                : _localizationResourceManager["Status1"];
+            string icon = connected
+                ? "green_check.png"
+                : "red_ex.png";
+
+            // Only redraw if the text really changed
+            if (status != _lastStatus)
+            {
+                _lastStatus           = status;
+                StatusLabel.Text      = status;
+                StatusImage1.Source   = icon;
+            }
+        }
+
+        private async void OnStatusImageClicked(object sender, EventArgs e)
+        {
+            if (_isDeviceConnected)
+            {
+                await Navigation.PushAsync(new Menu(_localizationResourceManager));
+            }
+            else
+            {
+                ConnectionDialog.IsVisible = true;
+                MainContent.IsVisible      = false;
+            }
+        }
+
+        private void OnConnectionDialogOkClicked(object sender, EventArgs e)
+        {
+            ConnectionDialog.IsVisible = false;
+            MainContent.IsVisible      = true;
+        }
+
+        private void OnLanguageButtonClicked(object sender, EventArgs e)
+        {
+            LanguageState.CurrentLanguage =
+                LanguageState.CurrentLanguage == "en" ? "es" : "en";
+            _localizationResourceManager.CurrentCulture =
+                new CultureInfo(LanguageState.CurrentLanguage);
+        }
+
+        private async void OnNextButtonClicked(object sender, EventArgs e)
+            => await Navigation.PushAsync(new Menu(_localizationResourceManager));
+
+        // …and the rest of your side-menu/navigation handlers unchanged…
+    }
+
+    public static class LanguageState
+    {
+        public static string CurrentLanguage { get; set; } = "en";
+        public static bool   IsSpanish       => CurrentLanguage == "es";
+    }
+}
+#endif
