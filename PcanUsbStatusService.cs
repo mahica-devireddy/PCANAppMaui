@@ -1,76 +1,85 @@
-using Microsoft.Maui.Dispatching;
-using Peak.Can.Basic;
+#if WINDOWS
 using System;
 using System.Timers;
-
-#if WINDOWS
+using Peak.Can.Basic;
 using PCANAppM.Platforms.Windows;
-#endif
 
 namespace PCANAppM.Services
 {
-#if WINDOWS
     public class PcanUsbStatusService
     {
         private static PcanUsbStatusService? _instance;
         public static PcanUsbStatusService Instance => _instance ??= new PcanUsbStatusService();
 
-        private readonly System.Timers.Timer _pollTimer;
-        private bool _isDevicePresent;
-        private string? _deviceName;
-        private PCAN_USB? _pcanUsb;
+        // poll every half-second
+        readonly Timer    _pollTimer;
+        bool              _isDevicePresent;
+        string?           _deviceName;
+        ushort            _handle;
+        PCAN_USB?         _pcanUsb;
 
-        public bool IsConnected => _isDevicePresent;
+        /// <summary>True if physically present right now</summary>
+        public bool IsConnected   => _isDevicePresent;
+        /// <summary>The first-found device name, or null</summary>
         public string? DeviceName => _deviceName;
-        public PCAN_USB? PcanUsb => _pcanUsb;
+
+        /// <summary>Raised whenever IsConnected flips</summary>
         public event Action? StatusChanged;
 
         private PcanUsbStatusService()
         {
-            _pollTimer = new System.Timers.Timer(1000) { AutoReset = true };
-            _pollTimer.Elapsed += (_, _) => PollStatus();
+            _pollTimer = new Timer(500) { AutoReset = true };
+            _pollTimer.Elapsed += (_,_) => PollStatus();
             _pollTimer.Start();
+
+            // do an immediate check
             PollStatus();
         }
 
         private void PollStatus()
         {
-            var devices = PCAN_USB.GetUSBDevices();
-            bool devicePresent = devices != null && devices.Count > 0;
-            string? foundDeviceName = devicePresent ? devices[0] : null;
-
-            // Device plugged in
-            if (devicePresent)
+            // 1) If never initialized, look for the stick once
+            if (_pcanUsb == null)
             {
-                // Only initialize if not already done
-                if (_pcanUsb == null)
+                var list = PCAN_USB.GetUSBDevices();
+                if (list != null && list.Count > 0)
                 {
-                    _deviceName = foundDeviceName!;
-                    _pcanUsb = new PCAN_USB();
-                    var handle = PCAN_USB.DecodePEAKHandle(_deviceName);
-                    // Try to initialize, but even if it fails, we still consider the device "present"
-                    _pcanUsb.InitializeCAN(handle, "250 kbit/s", true);
+                    _deviceName = list[0];
+                    _handle     = PCAN_USB.DecodePEAKHandle(_deviceName);
+                    _pcanUsb    = new PCAN_USB();
+                    // we don't care if it fails—you still consider "present"
+                    _pcanUsb.InitializeCAN(_handle, "250 kbit/s", true);
+                    UpdateStatus(true);
+                    return;
                 }
-            }
-            // Device unplugged
-            else
-            {
-                if (_pcanUsb != null)
-                {
-                    _pcanUsb.Uninitialize();
-                    _pcanUsb = null;
-                }
-                _deviceName = null;
+                // not found yet
+                UpdateStatus(false);
+                return;
             }
 
-            // Only fire event if device presence changed
-            if (devicePresent != _isDevicePresent || _deviceName != foundDeviceName)
+            // 2) Already opened: poll the channel condition flag
+            var result = PCANBasic.GetValue(
+                _handle,
+                TPCANParameter.PCAN_CHANNEL_CONDITION,
+                out uint condition,
+                sizeof(uint)
+            );
+
+            bool alive = result == TPCANStatus.PCAN_ERROR_OK
+                      && (condition & PCANBasic.PCAN_CHANNEL_AVAILABLE)
+                         == PCANBasic.PCAN_CHANNEL_AVAILABLE;
+
+            UpdateStatus(alive);
+        }
+
+        private void UpdateStatus(bool present)
+        {
+            if (present != _isDevicePresent)
             {
-                _isDevicePresent = devicePresent;
-                _deviceName = foundDeviceName;
+                _isDevicePresent = present;
                 StatusChanged?.Invoke();
             }
         }
     }
-#endif
 }
+#endif
