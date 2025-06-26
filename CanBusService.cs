@@ -1,107 +1,74 @@
 #if WINDOWS
-using Microsoft.Maui.Dispatching;
 using Peak.Can.Basic;
 using System;
-using System.Timers;
+using Timer = System.Timers.Timer;
 using PCANAppM.Platforms.Windows;
 
 namespace PCANAppM.Services
 {
-    public class CanBusService : ICanBusService, IDisposable
+    public class CanBusService : ICanBusService
     {
-        const int PollIntervalMs = 500;
-        const int DebounceThreshold = 3;
+        const double PollIntervalMs = 500;
+        readonly Timer _timer;
+        PCAN_USB?      _pcan;
+        bool           _isConnected;
+        string?        _deviceName;
 
-        readonly Timer _pollTimer;
-        int _presentCount, _absentCount;
-
-        PCAN_USB? _device;
-        ushort    _handle;
-        bool      _isConnected;
-        string?   _deviceName;
-
-        public bool IsConnected   => _isConnected;
+        /// <summary>True when stick is physically plugged in & initialized.</summary>
+        public bool IsConnected => _isConnected;
         public string? DeviceName => _deviceName;
 
+        /// <summary>Fires whenever IsConnected flips.</summary>
         public event Action? StatusChanged;
+
+        /// <summary>Fires for every incoming CAN frame (on UI thread).</summary>
         public event Action<PCAN_USB.Packet>? FrameReceived;
 
-        public CanBusService(IDispatcher dispatcher)
+        public CanBusService()
         {
-            // poll half-second
-            _pollTimer = new Timer(PollIntervalMs) { AutoReset = true };
-            _pollTimer.Elapsed += (_,__) => Poll();
-            _pollTimer.Start();
-            // immediate first pass
-            Poll();
+            _timer = new Timer(PollIntervalMs) { AutoReset = true };
+            _timer.Elapsed += (_,__) => Poll();
+            _timer.Start();
+            Poll(); // initial check
         }
 
         void Poll()
         {
-            var list = PCAN_USB.GetUSBDevices();
-            bool present = list.Count > 0;
+            var devs     = PCAN_USB.GetUSBDevices();
+            bool present = devs.Count > 0;
+            string? name = present ? devs[0] : null;
 
-            if (present) { _presentCount++; _absentCount = 0; }
-            else         { _absentCount++; _presentCount = 0; }
-
-            // init only after seen present X times
-            if (_presentCount >= DebounceThreshold && _device == null)
-                TryInit(list[0]);
-
-            // teardown only after seen absent X times
-            if (_absentCount >= DebounceThreshold && _device != null)
-                Teardown();
-        }
-
-        void TryInit(string name)
-        {
-            try
+            if (present && _pcan == null)
             {
-                var handle = PCAN_USB.DecodePEAKHandle(name);
-                var dev = new PCAN_USB();
-                var st = dev.InitializeCAN(handle, "250 kbit/s", true);
-                if (st == TPCANStatus.PCAN_ERROR_OK)
-                {
-                    _device      = dev;
-                    _handle      = handle;
-                    _deviceName  = name;
-                    _isConnected = true;
-                    // marshal incoming frames to UI thread
-                    dev.MessageReceived += pkt => FrameReceived?.Invoke(pkt);
-                    StatusChanged?.Invoke();
-                }
-                else
-                {
-                    dev.Uninitialize();
-                }
+                // first-time plug in → init once
+                _pcan = new PCAN_USB();
+                _pcan.MessageReceived += pkt => Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(() =>
+                    FrameReceived?.Invoke(pkt)
+                );
+                var handle = PCAN_USB.DecodePEAKHandle(name!);
+                _pcan.InitializeCAN(handle, "250 kbit/s", true);
             }
-            catch
+            else if (!present && _pcan != null)
             {
-                // swallow
+                // sustained unplug → tear down
+                _pcan.Uninitialize();
+                _pcan = null;
+            }
+
+            // fire only on real flip or name change
+            if (present != _isConnected || name != _deviceName)
+            {
+                _isConnected = present;
+                _deviceName  = name;
+                StatusChanged?.Invoke();
             }
         }
 
-        void Teardown()
-        {
-            _device!.Uninitialize();
-            _device = null;
-            _deviceName = null;
-            _isConnected = false;
-            StatusChanged?.Invoke();
-        }
-
+        /// <summary>Send a CAN frame over the shared bus.</summary>
         public void SendFrame(uint id, byte[] data, bool extended)
         {
-            if (_device != null && _isConnected)
-                _device.WriteFrame(id, data.Length, data, extended);
-        }
-
-        public void Dispose()
-        {
-            _pollTimer.Stop();
-            _pollTimer.Dispose();
-            if (_device != null)
-                _device.Uninitialize();
+            if (_pcan != null && _isConnected)
+                _pcan.WriteFrame(id, data.Length, data, extended);
         }
     }
 }
