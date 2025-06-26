@@ -257,3 +257,114 @@ namespace PCANAppM
     }
 }
 #endif
+
+using LocalizationResourceManager.Maui;
+using PCANAppM.Services;
+using Peak.Can.Basic;
+using System;
+using System.Globalization;
+using Microsoft.Maui.Controls;
+using System.Threading.Tasks;
+using Timer = System.Timers.Timer;
+
+namespace PCANAppM
+{
+#if WINDOWS
+    public partial class BAS : ContentPage
+    {
+        readonly ILocalizationResourceManager _loc;
+        readonly ICanBusService _bus;
+
+        string? _currentId, _pendingId;
+        bool    _deviceStarted, _isConnected;
+        Timer?  _timeout;
+
+        public BAS(ILocalizationResourceManager loc, ICanBusService bus)
+        {
+            InitializeComponent();
+            _loc = loc;
+            _bus = bus;
+
+            // live CAN frames
+            _bus.FrameReceived += OnFrame;
+            _deviceStarted = _bus.IsConnected;
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            _bus.FrameReceived -= OnFrame;
+        }
+
+        void OnFrame(PCAN_USB.Packet p)
+        {
+            // detect PGN and update connection timeout
+            uint pgn = (p.Id >> 8) & 0xFFFF;
+            if (pgn == 0xFFBB)
+            {
+                _isConnected = true;
+                ResetTimeout();
+            }
+
+            // extract last‐2 hex digits
+            var hx = $"0x{p.Id:X}";
+            var last = hx.Length >= 2 ? hx[^2..] : hx;
+            if (int.TryParse(last, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var id))
+            {
+                _currentId = id.ToString();
+                MainThread.BeginInvokeOnMainThread(() =>
+                    LatestCanIdLabel1.Text = $"{_loc["CurrentBAS"]} {_currentId}"
+                );
+            }
+        }
+
+        void ResetTimeout()
+        {
+            _timeout?.Stop();
+            _timeout = new Timer(2000) { AutoReset = false };
+            _timeout.Elapsed += (_,__) => _isConnected = false;
+            _timeout.Start();
+        }
+
+        // … your OnLanguageButtonClicked, side‐menu methods exactly as before …
+
+        async void OnSetClicked(object s, EventArgs e)
+        {
+            var txt = NewCanIdEntry1.Text?.Trim();
+            if (!int.TryParse(txt, out var newId) || newId < 0 || newId > 255)
+            {
+                await DisplayAlert("Error", "Enter 0–255", "OK");
+                return;
+            }
+            ConfirmText1.Text         = $"Set to {newId}";
+            SetCanIdView1.IsVisible   = false;
+            ConfirmCanIdView1.IsVisible = true;
+            _pendingId                = newId.ToString();
+        }
+
+        async void OnConfirmClicked(object s, EventArgs e)
+        {
+            if (string.IsNullOrEmpty(_pendingId)) return;
+            if (!int.TryParse(_currentId, out var curr)) curr = 0;
+            var cb = (byte)curr;
+            var nb = (byte)int.Parse(_pendingId);
+
+            // 4-msg protocol:
+            _bus.SendFrame(uint.Parse($"18EA{cb:X2}00", NumberStyles.HexNumber),
+                new byte[]{0x00,0xEF,0x00,0x00,0x00,0x00,0x00,0x00}, true);
+            _bus.SendFrame(uint.Parse($"18EF{cb:X2}00", NumberStyles.HexNumber),
+                new byte[]{0x06,nb,0x00,0xFF,0xFF,0xFF,0xFF,0xFF}, true);
+            _bus.SendFrame(uint.Parse($"18EA{cb:X2}00", NumberStyles.HexNumber),
+                new byte[]{0x00,0xEF,0x00,0x00,0x00,0x00,0x00,0x00}, true);
+            _bus.SendFrame(uint.Parse($"18EF{cb:X2}00", NumberStyles.HexNumber),
+                new byte[]{0xFA,0x73,0x61,0x76,0x65,0x00,0x00,0x00}, true);
+
+            ConfirmCanIdView1.IsVisible = false;
+            InitialBasView.IsVisible    = true;
+        }
+
+        // … your OnCancelConfirmClicked1, OnExitClicked, OnCheckConnectionClicked, etc. …
+    }
+#endif
+}
+
