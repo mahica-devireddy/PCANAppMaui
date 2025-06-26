@@ -15,12 +15,10 @@ public partial class KZV : ContentPage
 {
 #if WINDOWS
     private string? _currentCanId = null;
-    private string? _pendingNewCanId = null;
+    private string? _pendingNewCanId = null;    
     private readonly ILocalizationResourceManager _localizationResourceManager;
     private bool _isStarted = false;
     private System.Timers.Timer? _connectionTimeoutTimer;
-    private bool _isKZVConnected = false; // Added field to resolve CS0103
-    private bool _sideMenuFirstOpen = true; // Added field to resolve CS0103
 
     // Access the global device
     private PCAN_USB? PcanUsb => PcanUsbStatusService.Instance.PcanUsb;
@@ -166,6 +164,7 @@ public partial class KZV : ContentPage
         InitialKzvView.IsVisible = true;
     }
 
+    // Example: Sending a CAN message using the global device
     private void SendCanMessage(uint canId, byte[] data, int dataLen)
     {
         if (PcanUsb == null || !_isStarted)
@@ -176,6 +175,7 @@ public partial class KZV : ContentPage
             : data;
 
         var status = PcanUsb.WriteFrame(canId, dataLen, paddedData, canId > 0x7FF);
+        // Optionally handle status
     }
 
     private void OnCancelConfirmClicked(object sender, EventArgs e)
@@ -198,13 +198,13 @@ public partial class KZV : ContentPage
 
     private async void OnKZVClicked(object sender, EventArgs e)
     {
-        bool isKZVConnected = _isKZVConnected;
+        bool isKZVConnected = KZVConnectionState.IsConnected;
         await Navigation.PushAsync(new KZVConnectionStatusPage(isKZVConnected));
     }
 
     private async Task ShowKZVConnectionStatusAsync()
     {
-        string message = _isKZVConnected
+        string message = KZVConnectionState.IsConnected
             ? "KZ Valve is CONNECTED."
             : "KZ Valve is NOT CONNECTED.";
         await DisplayAlert("KZ Valve Connection", message, "OK");
@@ -263,7 +263,6 @@ public partial class KZV : ContentPage
     private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
     {
         SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
-        _sideMenuFirstOpen = false;
         SideMenu.TranslationX = -SideMenu.Width;
         await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
     }
