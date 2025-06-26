@@ -1,3 +1,4 @@
+using Microsoft.Maui.Dispatching;
 using Peak.Can.Basic;
 using System;
 using System.Timers;
@@ -46,7 +47,7 @@ namespace PCANAppM.Services
                 _deviceName = name!;
                 var handle = PCAN_USB.DecodePEAKHandle(_deviceName);
                 _pcanUsb = new PCAN_USB();
-                var status = _pcanUsb.InitializeCAN(handle, BaudRate, connected);
+                _pcanUsb.InitializeCAN(handle, BaudRate, connected);
             }
 
             if (connected != _isConnected || name != _deviceName)
