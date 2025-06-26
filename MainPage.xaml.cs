@@ -18,9 +18,10 @@ namespace PCANAppM
 
     public partial class MainPage : ContentPage
     {
-        private readonly ILocalizationResourceManager _localizationResourceManager;
-        private readonly PcanUsbStatusService _statusService = PcanUsbStatusService.Instance;
-        private bool isDeviceConnected;
+        readonly ILocalizationResourceManager _localizationResourceManager;
+        readonly PcanUsbStatusService _statusService;
+        bool isDeviceConnected;
+
         private bool _sideMenuFirstOpen = true;
         private bool _isLanguageGlowing = false;
         private bool _isPointerOverLanguageButton = false;
@@ -28,14 +29,16 @@ namespace PCANAppM
         public MainPage(ILocalizationResourceManager localizationResourceManager)
         {
             _localizationResourceManager = localizationResourceManager;
+            _statusService = PcanUsbStatusService.Instance;
             InitializeComponent();
+            _statusService.StatusChanged += OnStatusChanged;
+            UpdateDeviceStatusUI();
+
         }
 
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            _statusService.StatusChanged += OnStatusChanged;
-            UpdateDeviceStatusUI();
         }
 
         protected override void OnDisappearing()
