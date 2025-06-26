@@ -261,3 +261,82 @@ namespace PCANAppM
     }
 #endif
 }
+
+using Microsoft.Maui.Controls;
+using LocalizationResourceManager.Maui;
+using PCANAppM.Services;
+using System;
+using System.Globalization;
+using System.Timers;
+
+namespace PCANAppM
+{
+#if WINDOWS
+    public partial class BAS : ContentPage
+    {
+        readonly ILocalizationResourceManager _loc;
+        readonly CanBusService               _bus;
+        Timer                                _timeout;
+
+        public BAS(
+            ILocalizationResourceManager loc,
+            CanBusService               bus
+        )
+        {
+            InitializeComponent();
+            _loc = loc;
+            _bus = bus;
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            _bus.FrameReceived += OnFrame;
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            _bus.FrameReceived -= OnFrame;
+            _timeout?.Stop();
+        }
+
+        void OnFrame(PCAN_USB.Packet pkt)
+        {
+            // PGN for BAS?
+            uint pgn = (pkt.Id >> 8) & 0xFFFF;
+            if (pgn == 0xFFBB)
+            {
+                ASConnectionState.IsConnected = true;
+                DebounceTimeout();
+            }
+
+            // extract last‐two hex chars:
+            string hx = pkt.Id.ToString("X");
+            string last2 = hx.Length >= 2 ? hx[^2..] : hx;
+            if (int.TryParse(last2, NumberStyles.HexNumber, null, out var idInt))
+            {
+                MainThread.BeginInvokeOnMainThread(() =>
+                    LatestCanIdLabel1.Text = $"{_loc["CurrentBAS"]} {idInt}"
+                );
+            }
+        }
+
+        void DebounceTimeout()
+        {
+            _timeout?.Stop();
+            _timeout = new Timer(2000) { AutoReset = false };
+            _timeout.Elapsed += (_,__) => ASConnectionState.IsConnected = false;
+            _timeout.Start();
+        }
+
+        async void OnSetClicked(object sender, EventArgs e)
+        {
+            // your UI-driven ID pick logic here…
+            byte newId = /* … */;
+            uint canId = /* build PGN */;
+            _bus.SendFrame(canId, new byte[]{ /* … */ }, canId > 0x7FF);
+        }
+    }
+#endif
+}
