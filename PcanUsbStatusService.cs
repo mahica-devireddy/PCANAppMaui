@@ -1,15 +1,14 @@
+#if WINDOWS
+
 using Microsoft.Maui.Dispatching;
 using Peak.Can.Basic;
 using System;
 using System.Timers;
-
-#if WINDOWS
 using PCANAppM.Platforms.Windows;
-#endif
+
 
 namespace PCANAppM.Services
 {
-#if WINDOWS
     public class PcanUsbStatusService
     {
         private static PcanUsbStatusService? _instance;
@@ -44,7 +43,24 @@ namespace PCANAppM.Services
 
             if (connected && _pcanUsb == null)
             {
+                _deviceName = name!;
+                var handle = PCAN_USB.DecodePEAKHandle(_deviceName);
                 _pcanUsb = new PCAN_USB();
+
+                var status = _pcanUsb.InitializeCAN(handle, BaudRate, true); 
+                if (status != TPCANStatus.PCAN_ERROR_OK)
+                {
+                    _pcanUsb = null;
+                    _deviceName = null;
+                    connected = false;
+                }
+            }
+
+            if(!connected && _pcanUsb != null) 
+            {
+                _pcanUsb.Uninitialize();
+                _pcanUsb = null; 
+                _deviceName = null; 
             }
 
             if (connected != _isConnected || name != _deviceName)
@@ -55,5 +71,6 @@ namespace PCANAppM.Services
             }
         }
     }
-#endif
+
 }
+#endif
