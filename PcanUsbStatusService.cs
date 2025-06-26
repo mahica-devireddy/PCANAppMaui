@@ -1,94 +1,108 @@
 #if WINDOWS
 
-using Microsoft.Maui.Dispatching;
 using Peak.Can.Basic;
+using PCANAppM.Platforms.Windows;
 using System;
 using System.Timers;
-using PCANAppM.Platforms.Windows;
 
 namespace PCANAppM.Services
 {
     public class PcanUsbStatusService
     {
         private static PcanUsbStatusService? _instance;
-        public static PcanUsbStatusService Instance => _instance ??= new PcanUsbStatusService();
+        public  static PcanUsbStatusService  Instance => _instance ??= new PcanUsbStatusService();
 
-        readonly Timer _pollTimer;
-        bool           _isConnected;
-        string?        _deviceName;
-        PCAN_USB?      _pcanUsb;
+        readonly Timer  _pollTimer;
+        bool            _isConnected;
+        string?         _deviceName;
+        PCAN_USB?       _pcanUsb;
 
-        /// <summary>True when we have an initialized PCAN_USB.</summary>
-        public bool IsConnected => _isConnected;
-        /// <summary>The channel string from first‐found device, or null.</summary>
-        public string? DeviceName => _deviceName;
-        /// <summary>The initialized PCAN_USB instance, or null.</summary>
-        public PCAN_USB? PcanUsb  => _pcanUsb;
-
-        /// <summary>Baud rate to use on init.</summary>
-        public string BaudRate { get; } = "250 kbit/s";
-
-        /// <summary>Fires once whenever IsConnected flips true/false.</summary>
-        public event Action? StatusChanged;
+        public string   BaudRate   { get; } = "250 kbit/s";
+        public bool     IsConnected => _isConnected;
+        public string?  DeviceName  => _deviceName;
+        public PCAN_USB? PcanUsb     => _pcanUsb;
+        public event    Action? StatusChanged;
 
         private PcanUsbStatusService()
         {
             _pollTimer = new Timer(500) { AutoReset = true };
             _pollTimer.Elapsed += (_,__) => PollStatus();
             _pollTimer.Start();
-            PollStatus();  // immediate first check
+            PollStatus();
         }
 
         private void PollStatus()
         {
-            // If we haven't yet opened the bus, look for a plug by enumeration
+            bool nowConnected;
+            string? nowName;
+
+            // ─── PHASE 1: never initialized? use enumeration to find & init ───
             if (_pcanUsb == null)
             {
                 var devs = PCAN_USB.GetUSBDevices();
                 if (devs.Count > 0)
                 {
-                    // first‐time plug
-                    _deviceName = devs[0];
-                    var handle  = PCAN_USB.DecodePEAKHandle(_deviceName);
-                    _pcanUsb    = new PCAN_USB();
-                    var initSt  = _pcanUsb.InitializeCAN(handle, BaudRate, true);
-                    if (initSt != TPCANStatus.PCAN_ERROR_OK)
+                    nowName = devs[0];
+                    var handle = PCAN_USB.DecodePEAKHandle(nowName);
+                    var usb    = new PCAN_USB();
+                    var st     = usb.InitializeCAN(handle, BaudRate, true);
+
+                    if (st == TPCANStatus.PCAN_ERROR_OK)
                     {
-                        // init failure → clean up
-                        _pcanUsb    = null;
-                        _deviceName = null;
+                        _pcanUsb     = usb;
+                        nowConnected = true;
+                        _deviceName  = nowName;
+                    }
+                    else
+                    {
+                        // init failure
+                        usb.Uninitialize();
+                        nowConnected = false;
+                        nowName      = null;
                     }
                 }
+                else
+                {
+                    nowConnected = false;
+                    nowName      = null;
+                }
             }
+            // ─── PHASE 2: already have a handle? poll its "condition" flag ───
             else
             {
-                // Already have a handle: poll channel condition instead of re‐enumerating
                 var handle = _pcanUsb.PeakCANHandle;
                 var res    = PCANBasic.GetValue(
-                    handle,
-                    TPCANParameter.PCAN_CHANNEL_CONDITION,
-                    out uint condition,
-                    sizeof(uint)
-                );
+                                 handle,
+                                 TPCANParameter.PCAN_CHANNEL_CONDITION,
+                                 out uint condition,
+                                 sizeof(uint)
+                             );
 
-                bool stillHere = res == TPCANStatus.PCAN_ERROR_OK
-                             && (condition & PCANBasic.PCAN_CHANNEL_AVAILABLE)
-                                == PCANBasic.PCAN_CHANNEL_AVAILABLE;
+                bool alive = res == TPCANStatus.PCAN_ERROR_OK
+                          && (condition & PCANBasic.PCAN_CHANNEL_AVAILABLE)
+                             == PCANBasic.PCAN_CHANNEL_AVAILABLE;
 
-                if (!stillHere)
+                if (!alive)
                 {
-                    // sustained unplug: tear down
+                    // sustained unplug
                     _pcanUsb.Uninitialize();
-                    _pcanUsb    = null;
-                    _deviceName = null;
+                    _pcanUsb     = null;
+                    nowConnected = false;
+                    nowName      = null;
+                }
+                else
+                {
+                    // still present
+                    nowConnected = true;
+                    nowName      = _deviceName;
                 }
             }
 
-            // Only fire StatusChanged when the actual boolean flips
-            bool nowConn = _pcanUsb != null;
-            if (nowConn != _isConnected)
+            // ─── fire only on real flip ───
+            if (nowConnected != _isConnected)
             {
-                _isConnected = nowConn;
+                _isConnected = nowConnected;
+                _deviceName  = nowName;
                 StatusChanged?.Invoke();
             }
         }
