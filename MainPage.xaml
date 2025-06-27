@@ -99,12 +99,14 @@
                              WidthRequest="180"
                              Style="{StaticResource HeaderImageButtonStyle}"
                              Clicked="OnOshkoshLogoClicked" />
-                <!-- Language toggle -->
+                <!-- Language toggle 
+                Clicked="OnLanguageButtonClicked"-->
                 <ImageButton x:Name="LanguageButton"
                              Grid.Column="2"
                              Source="language_icon.png"
                              Style="{StaticResource HeaderImageButtonStyle}"
-                             Clicked="OnLanguageButtonClicked" />
+                             Clicked="OnLanguageButtonClicked"
+                              />
             </Grid>
 
             <!-- MAIN CONTENT (everything except header and dialog) -->
