@@ -1,3 +1,5 @@
+#if WINDOWS
+
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -12,21 +14,20 @@ using Timer = System.Timers.Timer;
 
 namespace PCANAppM
 {
-#if WINDOWS
     public partial class KZV : ContentPage
     {
         readonly ILocalizationResourceManager _loc;
-        readonly ICanBusService               _bus;
+        readonly ICanBusService _bus;
 
-        string?      _currentCanId;
-        string?      _pendingCanId;
-        bool         _isKzValveConnected;
-        Timer?       _connectionTimeoutTimer;
-        bool         _sideMenuFirstOpen = true;
+        string? _currentCanId;
+        string? _pendingCanId;
+        bool _isKzValveConnected;
+        Timer? _connectionTimeoutTimer;
+        bool _sideMenuFirstOpen = true;
 
         public KZV(
             ILocalizationResourceManager loc,
-            ICanBusService               bus
+            ICanBusService bus
         )
         {
             InitializeComponent();
@@ -82,7 +83,7 @@ namespace PCANAppM
 
         private void OnSetCanIdClicked(object sender, EventArgs e)
         {
-            SetCanIdView.IsVisible  = true;
+            SetCanIdView.IsVisible = true;
             InitialKzvView.IsVisible = false;
         }
 
@@ -101,17 +102,17 @@ namespace PCANAppM
                 return;
             }
 
-            ConfirmText.Text        = $"Set The CAN ID to {newId}";
-            SetCanIdView.IsVisible  = false;
+            ConfirmText.Text = $"Set The CAN ID to {newId}";
+            SetCanIdView.IsVisible = false;
             ConfirmCanIdView.IsVisible = true;
-            _pendingCanId           = newId.ToString();
-            NewCanIdEntry.Text      = string.Empty;
+            _pendingCanId = newId.ToString();
+            NewCanIdEntry.Text = string.Empty;
         }
 
         private void OnCancelConfirmClicked(object sender, EventArgs e)
         {
             ConfirmCanIdView.IsVisible = false;
-            InitialKzvView.IsVisible   = true;
+            InitialKzvView.IsVisible = true;
         }
 
         private async void OnConfirmClicked(object sender, EventArgs e)
@@ -120,7 +121,7 @@ namespace PCANAppM
 
             int.TryParse(_currentCanId, out var curr);
             byte currB = (byte)curr;
-            byte newB  = (byte)int.Parse(_pendingCanId);
+            byte newB = (byte)int.Parse(_pendingCanId);
 
             uint canId = (0x18EF0000u)
                        | ((uint)currB << 8)
@@ -133,7 +134,7 @@ namespace PCANAppM
             _bus.SendFrame(canId, data, extended: true);
 
             ConfirmCanIdView.IsVisible = false;
-            InitialKzvView.IsVisible   = true;
+            InitialKzvView.IsVisible = true;
         }
 
         private async void OnKZVClicked(object sender, EventArgs e)
@@ -152,15 +153,15 @@ namespace PCANAppM
 
         private void OnExitClicked(object sender, EventArgs e)
         {
-            SetCanIdView.IsVisible        = false;
-            ConfirmCanIdView.IsVisible    = false;
-            InitialKzvView.IsVisible      = true;
+            SetCanIdView.IsVisible = false;
+            ConfirmCanIdView.IsVisible = false;
+            InitialKzvView.IsVisible = true;
         }
 
         // ── side menu identical to BAS ──────────────────────────────────────────
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible    = true;
+            SideMenu.IsVisible = true;
             SideMenuDim.IsVisible = true;
             if (SideMenu.Width == 0)
                 SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
@@ -186,37 +187,37 @@ namespace PCANAppM
         private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
         {
             SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
-            _sideMenuFirstOpen     = false;
-            SideMenu.TranslationX  = -SideMenu.Width;
+            _sideMenuFirstOpen = false;
+            SideMenu.TranslationX = -SideMenu.Width;
             await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
         }
 
         private async void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
         }
 
         async Task CloseAndNavigate(Func<Task> nav)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
             await nav();
         }
 
         private void OnMenuClicked(object sender, EventArgs e)
-            => _ = CloseAndNavigate(() => Navigation.PushAsync(new Menu(_loc)));
+            => _ = CloseAndNavigate(() => Navigation.PushAsync(new Menu(_loc, _bus)));
 
         private void OnAngleSensorMenuClicked(object sender, EventArgs e)
-            => _ = CloseAndNavigate(() => Navigation.PushAsync(new BAS(_loc)));
+            => _ = CloseAndNavigate(() => Navigation.PushAsync(new BAS(_loc, _bus)));
 
         private void OnKzValveMenuClicked(object sender, EventArgs e)
-            => _ = CloseAndNavigate(() => Navigation.PushAsync(new KZV(_loc)));
+            => _ = CloseAndNavigate(() => Navigation.PushAsync(new KZV(_loc, _bus)));
 
         private void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
-            => _ = CloseAndNavigate(() => Navigation.PushAsync(new FTLS(_loc)));
+            => _ = CloseAndNavigate(() => Navigation.PushAsync(new FTLS(_loc, _bus)));
     }
-#endif
 }
+#endif
