@@ -1,4 +1,7 @@
+#if WINDOWS
+
 using System;
+using System.ComponentModel;
 using System.Globalization;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -9,18 +12,17 @@ using PCANAppM.Resources.Languages;
 
 namespace PCANAppM
 {
-#if WINDOWS
     public partial class MainPage : ContentPage
     {
         readonly ILocalizationResourceManager _loc;
-        readonly ICanBusService               _bus;
+        readonly ICanBusService _bus;
 
         bool _isDeviceConnected;
         bool _sideMenuFirstOpen = true;
 
         public MainPage(
             ILocalizationResourceManager loc,
-            ICanBusService               bus
+            ICanBusService bus
         )
         {
             InitializeComponent();
@@ -28,8 +30,8 @@ namespace PCANAppM
             _loc = loc;
             _bus = bus;
 
-            // Subscribe to connection status changes
-            _bus.StatusChanged += OnBusStatusChanged;
+            // Subscribe to property changes for connection status and device name
+            _bus.PropertyChanged += OnBusPropertyChanged;
 
             // Initial UI update
             UpdateDeviceStatusUI();
@@ -38,12 +40,16 @@ namespace PCANAppM
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            _bus.StatusChanged -= OnBusStatusChanged;
+            _bus.PropertyChanged -= OnBusPropertyChanged;
         }
 
-        void OnBusStatusChanged()
+        void OnBusPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            MainThread.BeginInvokeOnMainThread(UpdateDeviceStatusUI);
+            if (e.PropertyName == nameof(ICanBusService.IsConnected) ||
+                e.PropertyName == nameof(ICanBusService.DeviceName))
+            {
+                MainThread.BeginInvokeOnMainThread(UpdateDeviceStatusUI);
+            }
         }
 
         void UpdateDeviceStatusUI()
@@ -52,13 +58,13 @@ namespace PCANAppM
 
             if (_isDeviceConnected)
             {
-                StatusLabel.Text      = $"{_bus.DeviceName}  {_loc["Status2"]}";
-                StatusImage1.Source   = "green_check.png";
+                StatusLabel.Text = $"{_bus.DeviceName}  {_loc["Status2"]}";
+                StatusImage1.Source = "green_check.png";
             }
             else
             {
-                StatusLabel.Text      = _loc["Status1"];
-                StatusImage1.Source   = "red_ex.png";
+                StatusLabel.Text = _loc["Status1"];
+                StatusImage1.Source = "red_ex.png";
             }
         }
 
@@ -71,14 +77,14 @@ namespace PCANAppM
             else
             {
                 ConnectionDialog.IsVisible = true;
-                MainContent.IsVisible      = false;
+                MainContent.IsVisible = false;
             }
         }
 
         private void OnConnectionDialogOkClicked(object sender, EventArgs e)
         {
             ConnectionDialog.IsVisible = false;
-            MainContent.IsVisible      = true;
+            MainContent.IsVisible = true;
         }
 
         private void OnLanguageButtonClicked(object sender, EventArgs e)
@@ -94,7 +100,7 @@ namespace PCANAppM
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible    = true;
+            SideMenu.IsVisible = true;
             SideMenuDim.IsVisible = true;
             if (SideMenu.Width == 0)
                 SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
@@ -120,7 +126,7 @@ namespace PCANAppM
         private async void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
         }
 
@@ -141,7 +147,7 @@ namespace PCANAppM
         async Task CloseMenuAnd(Func<Task> nav)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
             await nav();
         }
@@ -153,5 +159,5 @@ namespace PCANAppM
         public static CultureInfo CurrentCulture { get; set; } = new CultureInfo("en");
         public static bool IsSpanish => CurrentLanguage == "es";
     }
-#endif
 }
+#endif
