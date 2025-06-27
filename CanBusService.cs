@@ -1,30 +1,31 @@
 using System;
 using System.Timers;
-using Peak.Can.Basic;
+using Peak.Can.Basic;                       // make sure you’ve added the Peak.Can.Basic NuGet/package
 using TPCANHandle = System.UInt16;
 using TPCANStatus = Peak.Can.Basic.TPCANStatus;
 
 namespace PCANAppM.Services
 {
-    /// <summary>
-    /// Polls the PCAN-USB every second and raises ConnectionStatusChanged
-    /// only when the state actually changes.
-    /// </summary>
     public class CanBusService : ICanBusService, IDisposable
     {
-        private readonly PCANBasic _pcan = new PCANBasic();
         private readonly Timer      _timer;
         private readonly TPCANHandle _handle = PCANBasic.PCAN_USBBUS1;
-        private bool _isConnected;
+        private bool                 _isConnected;
 
         public event EventHandler<bool> ConnectionStatusChanged;
         public bool IsConnected => _isConnected;
 
         public CanBusService()
         {
-            // poll every 1 second
+            // initialize the channel at 500 kbit/s (or whatever baud you need)
+            var initResult = PCANBasic.Initialize(
+                _handle,
+                TPCANBaudrate.PCAN_BAUD_500K
+            );
+            // you can check initResult != PCAN_ERROR_OK to log/fail if you want
+
             _timer = new Timer(1000);
-            _timer.Elapsed += (_, __) => CheckStatus();
+            _timer.Elapsed += (_,__) => CheckStatus();
         }
 
         public void StartMonitoring() => _timer.Start();
@@ -32,11 +33,10 @@ namespace PCANAppM.Services
 
         private void CheckStatus()
         {
-            // Query bus status
-            var status = _pcan.GetStatus(_handle);
+            // static call—no instance
+            var status = PCANBasic.GetStatus(_handle);
             bool nowConnected = (status == TPCANStatus.PCAN_ERROR_OK);
 
-            // Only fire if changed
             if (nowConnected != _isConnected)
             {
                 _isConnected = nowConnected;
@@ -46,9 +46,9 @@ namespace PCANAppM.Services
 
         public void Dispose()
         {
-            _timer?.Stop();
-            _timer?.Dispose();
-            _pcan.Uninitialize(_handle);
+            StopMonitoring();
+            _timer.Dispose();
+            PCANBasic.Uninitialize(_handle);
         }
     }
 }
