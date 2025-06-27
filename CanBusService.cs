@@ -1,198 +1,3 @@
-// #if WINDOWS
-
-// using Microsoft.Maui.Dispatching;
-// using Peak.Can.Basic;
-// using System;
-// using System.ComponentModel;
-// using System.Threading;
-// using System.Threading.Tasks;
-// using PCANAppM.Platforms.Windows;
-
-// namespace PCANAppM.Services
-// {
-//     public class CanBusService : ICanBusService
-//     {
-//         const int PollMs = 500;
-//         const int DebounceNeeded = 6; // Increased for stability
-
-//         readonly IDispatcher _dispatcher;
-//         CancellationTokenSource _cts = new();
-
-//         int _presentCount, _absentCount;
-//         PCAN_USB? _dev;
-//         ushort _handle;
-
-//         // --- Add for receive loop ---
-//         CancellationTokenSource? _rxCts;
-//         Task? _rxTask;
-//         // ---------------------------
-
-//         bool _isConnected;
-//         public bool IsConnected
-//         {
-//             get => _isConnected;
-//             private set
-//             {
-//                 if (_isConnected == value) return;
-//                 _isConnected = value;
-//                 PropertyChanged?.Invoke(this, new(nameof(IsConnected)));
-//             }
-//         }
-
-//         public string? DeviceName { get; private set; }
-//         public event PropertyChangedEventHandler? PropertyChanged;
-//         public event Action<PCAN_USB.Packet>? FrameReceived;
-
-//         public CanBusService(IDispatcher disp)
-//         {
-//             _dispatcher = disp;
-//             StartDeviceMonitor();
-//         }
-
-//         private void StartDeviceMonitor()
-//         {
-//             _cts = new CancellationTokenSource();
-//             Task.Run(() => MonitorDeviceLoop(_cts.Token));
-//         }
-
-//         private async Task MonitorDeviceLoop(CancellationToken token)
-//         {
-//             while (!token.IsCancellationRequested)
-//             {
-//                 var devs = PCAN_USB.GetUSBDevices();
-//                 bool present = devs != null && devs.Count > 0;
-
-//                 if (present) { _presentCount++; _absentCount = 0; }
-//                 else        { _absentCount++; _presentCount = 0; }
-
-//                 // on stable connect:
-//                 if (_presentCount >= DebounceNeeded && _dev == null)
-//                     _dispatcher.Dispatch(() => TryInit(devs[0]));
-
-//                 // on stable disconnect:
-//                 if (_absentCount >= DebounceNeeded && _dev != null)
-//                     _dispatcher.Dispatch(Teardown);
-
-//                 await Task.Delay(PollMs, token);
-//             }
-//         }
-
-//         void TryInit(string name)
-//         {
-//             try
-//             {
-//                 DeviceName = name;
-//                 _handle = PCAN_USB.DecodePEAKHandle(name);
-//                 var usb = new PCAN_USB();
-//                 var st  = usb.InitializeCAN(_handle, "250 kbit/s", false); // false: don't start WinForms read thread
-
-//                 if (st == TPCANStatus.PCAN_ERROR_OK)
-//                 {
-//                     _dev = usb;
-//                     IsConnected = true;
-//                     StartReceiveLoop(); // <-- Start background receive loop
-//                 }
-//                 else
-//                 {
-//                     usb.Uninitialize();
-//                     DeviceName = null;
-//                     IsConnected = false;
-//                 }
-//             }
-//             catch
-//             {
-//                 _dev?.Uninitialize();
-//                 _dev = null;
-//                 DeviceName = null;
-//                 IsConnected = false;
-//             }
-//         }
-
-//         void Teardown()
-//         {
-//             StopReceiveLoop(); // <-- Stop background receive loop
-//             _dev?.Uninitialize();
-//             _dev = null;
-//             DeviceName = null;
-//             IsConnected = false;
-//         }
-
-//         public void SendFrame(uint id, byte[] data, bool extended)
-//         {
-//             if (_dev != null && IsConnected)
-//                 _dev.WriteFrame(id, data.Length, data, extended);
-//         }
-
-//         public void Dispose()
-//         {
-//             _cts.Cancel();
-//             StopReceiveLoop();
-//             if (_dev != null) _dev.Uninitialize();
-//         }
-
-//         // --- CAN Receive Loop Implementation ---
-//         private void StartReceiveLoop()
-//         {
-//             StopReceiveLoop();
-//             _rxCts = new CancellationTokenSource();
-//             _rxTask = Task.Run(() => ReceiveLoop(_rxCts.Token));
-//         }
-
-//         private void StopReceiveLoop()
-//         {
-//             if (_rxCts != null)
-//             {
-//                 _rxCts.Cancel();
-//                 _rxCts.Dispose();
-//                 _rxCts = null;
-//             }
-//             _rxTask = null;
-//         }
-
-//         private async Task ReceiveLoop(CancellationToken token)
-//         {
-//             if (_dev == null) return;
-
-//             var handle = _handle;
-//             while (!token.IsCancellationRequested && _dev != null)
-//             {
-//                 // Try to read a CAN message
-//                 TPCANMsg msg;
-//                 TPCANTimestamp ts;
-//                 var result = PCANBasic.Read(handle, out msg, out ts);
-
-//                 if (result == TPCANStatus.PCAN_ERROR_OK)
-//                 {
-//                     // Build a Packet and raise FrameReceived
-//                     var packet = new PCAN_USB.Packet
-//                     {
-//                         Microseconds = Convert.ToUInt64(ts.micros + 1000 * ts.millis + 0x100000000 * 1000 * ts.millis_overflow),
-//                         Id = msg.ID,
-//                         Length = msg.LEN,
-//                         Data = (byte[])msg.DATA.Clone(),
-//                         IsExtended = (msg.MSGTYPE & TPCANMessageType.PCAN_MESSAGE_EXTENDED) == TPCANMessageType.PCAN_MESSAGE_EXTENDED
-//                     };
-
-//                     // Raise event on UI thread
-//                     _dispatcher.Dispatch(() => FrameReceived?.Invoke(packet));
-//                 }
-//                 else if (result == TPCANStatus.PCAN_ERROR_QRCVEMPTY)
-//                 {
-//                     // No message, wait a bit
-//                     await Task.Delay(10, token);
-//                 }
-//                 else
-//                 {
-//                     // Error, optionally handle/log
-//                     await Task.Delay(10, token);
-//                 }
-//             }
-//         }
-//         // ----------------------------------------
-//     }
-// }
-// #endif
-
 #if WINDOWS
 
 using Microsoft.Maui.Dispatching;
@@ -202,6 +7,7 @@ using System.ComponentModel;
 using System.Threading;
 using System.Threading.Tasks;
 using PCANAppM.Platforms.Windows;
+using Windows.Security.Cryptography.Core;
 
 namespace PCANAppM.Services
 {
@@ -215,7 +21,7 @@ namespace PCANAppM.Services
 
         int _presentCount, _absentCount;
         PCAN_USB? _dev;
-        ushort    _handle;
+        ushort _handle;
 
         // Receive-loop tokens
         CancellationTokenSource? _rxCts;
@@ -228,7 +34,7 @@ namespace PCANAppM.Services
             {
                 if (_isConnected == value) return;
                 _isConnected = value;
-                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsConnected)));
+                EnergySaverStatusChangedEventArgs?.Invoke(); 
             }
         }
 
@@ -245,62 +51,48 @@ namespace PCANAppM.Services
 
         async Task MonitorDeviceLoop(CancellationToken token)
         {
+            bool lastPresent = false; 
+
             while (!token.IsCancellationRequested)
             {
                 var devs = PCAN_USB.GetUSBDevices();
                 bool present = devs?.Count > 0;
 
-                if (present && _dev == null)
+                if (present && !lastPresent)
                 {
-                    // stable present => initialize
-                    _presentCount++; _absentCount = 0;
-                    if (_presentCount >= DebounceNeeded)
-                        TryInit(devs![0]);
+                    TryInit(devs![0]);
+                    System.Diagnostics.Debug.WriteLine("PCAN Initialized");
                 }
-                else if (!present && _dev != null)
+                else if (!present && lastPresent)
                 {
-                    // stable absent => teardown
-                    _absentCount++; _presentCount = 0;
-                    if (_absentCount >= DebounceNeeded)
-                        Teardown();
+                    Teardown();
+                    System.Diagnostics.Debug.WriteLine("PCAN Uninitialized");
                 }
-                else
-                {
-                    // reset counters if state unchanged
-                    if (present) _absentCount = 0;
-                    else         _presentCount = 0;
-                }
+                lastPresent = present;
 
-                await Task.Delay(PollMs, token);
+                await Task.Delay(500, token);
             }
         }
 
         void TryInit(string name)
         {
-            try
-            {
-                DeviceName = name;
-                _handle = PCAN_USB.DecodePEAKHandle(name);
-                var usb = new PCAN_USB();
-                var st  = usb.InitializeCAN(_handle, "250 kbit/s", false);
+            DeviceName = name;
+            _handle = PCAN_USB.DecodePEAKHandle(name);
 
-                if (st == TPCANStatus.PCAN_ERROR_OK)
-                {
-                    _dev = usb;
-                    IsConnected = true;
-                    StartReceiveLoop();
-                }
-                else
-                {
-                    usb.Uninitialize();
-                    DeviceName = null;
-                    IsConnected = false;
-                }
-            }
-            catch
+            var usb = new PCAN_USB();
+            var status = usb.InitializeCAN(_handle, "250 kbit/s", true); 
+
+            if (status ==TPCANStatus.PCAN_ERROR_OK)
             {
-                _dev?.Uninitialize();
-                _dev = null;
+                _dev = usb; 
+                IsConnected = true;
+
+                usb.MessageReceived += pkt => 
+                    _dispatcher.Dispatch(() => FrameReceived?.Invoke(pkt));
+            }
+            else
+            {
+                usb.Uninitialize();
                 DeviceName = null;
                 IsConnected = false;
             }
@@ -308,7 +100,6 @@ namespace PCANAppM.Services
 
         void Teardown()
         {
-            StopReceiveLoop();
             _dev?.Uninitialize();
             _dev = null;
             DeviceName = null;
@@ -358,10 +149,10 @@ namespace PCANAppM.Services
                     var packet = new PCAN_USB.Packet
                     {
                         Microseconds = (ulong)(ts.micros + 1000 * ts.millis + (ulong)ts.millis_overflow * 0x100000000),
-                        Id            = msg.ID,
-                        Length        = msg.LEN,
-                        Data          = (byte[])msg.DATA.Clone(),
-                        IsExtended    = (msg.MSGTYPE & TPCANMessageType.PCAN_MESSAGE_EXTENDED) == TPCANMessageType.PCAN_MESSAGE_EXTENDED
+                        Id = msg.ID,
+                        Length = msg.LEN,
+                        Data = (byte[])msg.DATA.Clone(),
+                        IsExtended = (msg.MSGTYPE & TPCANMessageType.PCAN_MESSAGE_EXTENDED) == TPCANMessageType.PCAN_MESSAGE_EXTENDED
                     };
                     _dispatcher.Dispatch(() => FrameReceived?.Invoke(packet));
                 }
@@ -372,4 +163,3 @@ namespace PCANAppM.Services
     }
 }
 #endif
-
