@@ -13,7 +13,7 @@ namespace PCANAppM.Services
     {
         bool IsConnected { get; }
         string? DeviceName { get; }
-        //event Action? StatusChanged;
+        event Action? StatusChanged;
         event Action<PCAN_USB.Packet>? FrameReceived;
         void SendFrame(uint id, byte[] data, bool extended);
     }
