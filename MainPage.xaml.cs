@@ -14,13 +14,14 @@ namespace PCANAppM
     public partial class MainPage : ContentPage
     {
         readonly ILocalizationResourceManager _loc;
-        readonly ICanBusService               _bus;
-        bool                                  _isDeviceConnected;
-        bool                                  _sideMenuFirstOpen = true;
+        readonly ICanBusService _bus;
+
+        bool _isDeviceConnected;
+        bool _sideMenuFirstOpen = true;
 
         public MainPage(
             ILocalizationResourceManager loc,
-            ICanBusService               bus
+            ICanBusService bus
         )
         {
             InitializeComponent();
@@ -56,12 +57,12 @@ namespace PCANAppM
 
             if (_isDeviceConnected)
             {
-                StatusLabel.Text   = $"{_bus.DeviceName}  {_loc["Status2"]}";
+                StatusLabel.Text = $"{_bus.DeviceName}  {_loc["Status2"]}";
                 StatusImage1.Source = "green_check.png";
             }
             else
             {
-                StatusLabel.Text   = _loc["Status1"];
+                StatusLabel.Text = _loc["Status1"];
                 StatusImage1.Source = "red_ex.png";
             }
         }
@@ -82,7 +83,7 @@ namespace PCANAppM
         private void OnConnectionDialogOkClicked(object sender, EventArgs e)
         {
             ConnectionDialog.IsVisible = false;
-            MainContent.IsVisible      = true;
+            MainContent.IsVisible = true;
         }
 
         private void OnLanguageButtonClicked(object sender, EventArgs e)
@@ -98,7 +99,7 @@ namespace PCANAppM
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible    = true;
+            SideMenu.IsVisible = true;
             SideMenuDim.IsVisible = true;
             if (SideMenu.Width == 0)
                 SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
@@ -124,7 +125,7 @@ namespace PCANAppM
         private async void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
         }
 
@@ -145,7 +146,7 @@ namespace PCANAppM
         async Task CloseMenuAnd(Func<Task> nav)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
             await nav();
         }
@@ -154,7 +155,7 @@ namespace PCANAppM
     public static class LanguageState
     {
         public static string CurrentLanguage { get; set; } = "en";
-        public static CultureInfo CurrentCulture  { get; set; } = new CultureInfo("en");
+        public static CultureInfo CurrentCulture { get; set; } = new CultureInfo("en");
         public static bool IsSpanish => CurrentLanguage == "es";
     }
 #endif
