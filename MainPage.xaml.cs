@@ -1,5 +1,4 @@
 using System;
-using System.ComponentModel;
 using System.Globalization;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -14,14 +13,14 @@ namespace PCANAppM
     public partial class MainPage : ContentPage
     {
         readonly ILocalizationResourceManager _loc;
-        readonly ICanBusService _bus;
+        readonly ICanBusService               _bus;
 
         bool _isDeviceConnected;
         bool _sideMenuFirstOpen = true;
 
         public MainPage(
             ILocalizationResourceManager loc,
-            ICanBusService bus
+            ICanBusService               bus
         )
         {
             InitializeComponent();
@@ -29,26 +28,22 @@ namespace PCANAppM
             _loc = loc;
             _bus = bus;
 
-            // 1) Subscribe to IsConnected changes
-            _bus.PropertyChanged += OnBusPropertyChanged;
+            // Subscribe to connection status changes
+            _bus.StatusChanged += OnBusStatusChanged;
 
-            // 2) Initial UI update
+            // Initial UI update
             UpdateDeviceStatusUI();
         }
 
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            _bus.PropertyChanged -= OnBusPropertyChanged;
+            _bus.StatusChanged -= OnBusStatusChanged;
         }
 
-        void OnBusPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        void OnBusStatusChanged()
         {
-            if (e.PropertyName == nameof(ICanBusService.IsConnected))
-            {
-                // marshal back onto UI thread
-                MainThread.BeginInvokeOnMainThread(UpdateDeviceStatusUI);
-            }
+            MainThread.BeginInvokeOnMainThread(UpdateDeviceStatusUI);
         }
 
         void UpdateDeviceStatusUI()
@@ -57,13 +52,13 @@ namespace PCANAppM
 
             if (_isDeviceConnected)
             {
-                StatusLabel.Text = $"{_bus.DeviceName}  {_loc["Status2"]}";
-                StatusImage1.Source = "green_check.png";
+                StatusLabel.Text      = $"{_bus.DeviceName}  {_loc["Status2"]}";
+                StatusImage1.Source   = "green_check.png";
             }
             else
             {
-                StatusLabel.Text = _loc["Status1"];
-                StatusImage1.Source = "red_ex.png";
+                StatusLabel.Text      = _loc["Status1"];
+                StatusImage1.Source   = "red_ex.png";
             }
         }
 
@@ -76,14 +71,14 @@ namespace PCANAppM
             else
             {
                 ConnectionDialog.IsVisible = true;
-                MainContent.IsVisible = false;
+                MainContent.IsVisible      = false;
             }
         }
 
         private void OnConnectionDialogOkClicked(object sender, EventArgs e)
         {
             ConnectionDialog.IsVisible = false;
-            MainContent.IsVisible = true;
+            MainContent.IsVisible      = true;
         }
 
         private void OnLanguageButtonClicked(object sender, EventArgs e)
@@ -99,7 +94,7 @@ namespace PCANAppM
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible = true;
+            SideMenu.IsVisible    = true;
             SideMenuDim.IsVisible = true;
             if (SideMenu.Width == 0)
                 SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
@@ -125,7 +120,7 @@ namespace PCANAppM
         private async void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible = false;
+            SideMenu.IsVisible    = false;
             SideMenuDim.IsVisible = false;
         }
 
@@ -146,7 +141,7 @@ namespace PCANAppM
         async Task CloseMenuAnd(Func<Task> nav)
         {
             await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
+            SideMenu.IsVisible    = false;
             SideMenuDim.IsVisible = false;
             await nav();
         }
