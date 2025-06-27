@@ -1,176 +1,80 @@
-#if WINDOWS
-
 using System;
-using System.Globalization;
-using System.ComponentModel;
-using Microsoft.Maui;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.Dispatching;
-using LocalizationResourceManager.Maui;
-using PCANAppM.Services;        // <-- your ICanBusService
-using PCANAppM.Resources.Languages;
+using Microsoft.Maui.ApplicationModel;   // for MainThread
+using PCANAppM.Services;                // your ICanBusService + CanBusService
 
 namespace PCANAppM
 {
     public partial class MainPage : ContentPage
     {
-        readonly ILocalizationResourceManager _loc;
-        readonly ICanBusService _bus;
+        private readonly ICanBusService _canBusService;
 
-        bool _isDeviceConnected;
-        bool _sideMenuFirstOpen = true;
-
-        public MainPage(
-            ILocalizationResourceManager loc,
-            ICanBusService bus
-        )
+        public MainPage()
         {
             InitializeComponent();
 
-            _loc = loc;
-            _bus = bus;
+            // if you’re not using DI, just new it up here:
+            _canBusService = new CanBusService();
 
-            // Subscribe to property changes for connection status and device name
-            _bus.PropertyChanged += OnBusPropertyChanged;
+            // hook the event
+            _canBusService.ConnectionStatusChanged += OnConnectionStatusChanged;
 
-            // Initial UI update
-            UpdateDeviceStatusUI();
+            // set initial UI state
+            UpdateStatus(_canBusService.IsConnected);
+
+            // kick off polling
+            _canBusService.StartMonitoring();
+        }
+
+        private void OnConnectionStatusChanged(object sender, bool isConnected)
+        {
+            // ensure UI thread
+            MainThread.BeginInvokeOnMainThread(() =>
+                UpdateStatus(isConnected)
+            );
+        }
+
+        private void UpdateStatus(bool isConnected)
+        {
+            if (isConnected)
+            {
+                StatusLabel.Text        = "Connected";
+                StatusImage1.Source     = "green_check.png";
+            }
+            else
+            {
+                StatusLabel.Text        = "Disconnected";
+                StatusImage1.Source     = "red_ex.png";
+            }
         }
 
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            _bus.PropertyChanged -= OnBusPropertyChanged;
+            _canBusService.StopMonitoring();
+            _canBusService.ConnectionStatusChanged -= OnConnectionStatusChanged;
         }
 
-        void OnBusPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        // XAML‐wired handlers you already have
+        private void OnStatusImageClicked(object sender, EventArgs e)
         {
-            if (e.PropertyName == nameof(ICanBusService.IsConnected) ||
-                e.PropertyName == nameof(ICanBusService.DeviceName))
-            {
-                MainThread.BeginInvokeOnMainThread(UpdateDeviceStatusUI);
-            }
-        }
-
-        void UpdateDeviceStatusUI()
-        {
-            _isDeviceConnected = _bus.IsConnected;
-
-            if (_isDeviceConnected)
-            {
-                // show main content
-                MainContent.IsVisible = true;
-                ConnectionDialog.IsVisible = false;
-
-                StatusLabel.Text = $"{_bus.DeviceName}  {_loc["Status2"]}";
-                StatusImage1.Source = "green_check.png";
-            }
-            else
-            {
-                // hide main content, show dialog
-                MainContent.IsVisible = true;
-                ConnectionDialog.IsVisible = false;
-
-                StatusLabel.Text = _loc["Status1"];
-                StatusImage1.Source = "red_ex.png";
-            }
-        }
-
-        // ─── Your existing handlers below ───────────────────────────────────────
-
-        private async void OnStatusImageClicked(object sender, EventArgs e)
-        {
-            if (_isDeviceConnected)
-                await Navigation.PushAsync(new Menu(_loc, _bus));
-            else
-            {
+            if (!_canBusService.IsConnected)
                 ConnectionDialog.IsVisible = true;
-                MainContent.IsVisible = false;
-            }
         }
 
         private void OnConnectionDialogOkClicked(object sender, EventArgs e)
-        {
-            ConnectionDialog.IsVisible = false;
-            MainContent.IsVisible = true;
-        }
+            => ConnectionDialog.IsVisible = false;
 
-        private void OnLanguageButtonClicked(object sender, EventArgs e)
+        private void OnOshkoshLogoClicked(object sender, EventArgs e) { /* … */ }
+        private void OnLanguageButtonClicked(object sender, EventArgs e) { /* … */ }
+        private void OnMenuClicked(object sender, EventArgs e) { /* … */ }
+        private void OnAngleSensorMenuClicked(object sender, EventArgs e) { /* … */ }
+        private void OnKzValveMenuClicked(object sender, EventArgs e) { /* … */ }
+        private void OnFluidTankLevelMenuClicked(object sender, EventArgs e) { /* … */ }
+        private void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
-            LanguageState.CurrentLanguage =
-                LanguageState.CurrentLanguage == "en" ? "es" : "en";
-            _loc.CurrentCulture =
-                new CultureInfo(LanguageState.CurrentLanguage);
-        }
-
-        private async void OnNextButtonClicked(object sender, EventArgs e)
-            => await Navigation.PushAsync(new Menu(_loc, _bus));
-
-        private void OnOshkoshLogoClicked(object sender, EventArgs e)
-        {
-            SideMenu.IsVisible = true;
-            SideMenuDim.IsVisible = true;
-            if (_sideMenuFirstOpen)
-            {
-                SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
-                _sideMenuFirstOpen = false;
-            }
-            else
-            {
-                _ = AnimateSideMenuIn();
-            }
-        }
-
-        private async void SideMenu_SizeChangedAnimateIn(object? sender, EventArgs e)
-        {
-            if (SideMenu.Width > 0)
-            {
-                SideMenu.SizeChanged -= SideMenu_SizeChangedAnimateIn;
-                await AnimateSideMenuIn();
-            }
-        }
-
-        private async Task AnimateSideMenuIn()
-        {
-            SideMenu.TranslationX = -SideMenu.Width;
-            await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
-        }
-
-        private async void OnCloseSideMenuClicked(object sender, EventArgs e)
-        {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn);
-            SideMenu.IsVisible = false;
+            SideMenu.IsVisible    = false;
             SideMenuDim.IsVisible = false;
         }
-
-        private async void OnMenuClicked(object sender, EventArgs e)
-        {
-            await CloseMenuAnd(async () => await Navigation.PushAsync(new Menu(_loc, _bus)));
-        }
-
-        private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
-            => await CloseMenuAnd(async () => await Navigation.PushAsync(new BAS(_loc, _bus)));
-
-        private async void OnKzValveMenuClicked(object sender, EventArgs e)
-            => await CloseMenuAnd(async () => await Navigation.PushAsync(new KZV(_loc, _bus)));
-
-        private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
-            => await CloseMenuAnd(async () => await Navigation.PushAsync(new FTLS(_loc, _bus)));
-
-        async Task CloseMenuAnd(Func<Task> nav)
-        {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
-            SideMenuDim.IsVisible = false;
-            await nav();
-        }
-    }
-
-    public static class LanguageState
-    {
-        public static string CurrentLanguage { get; set; } = "en";
-        public static CultureInfo CurrentCulture { get; set; } = new CultureInfo("en");
-        public static bool IsSpanish => CurrentLanguage == "es";
     }
 }
-#endif
