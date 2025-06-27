@@ -14,12 +14,10 @@ namespace PCANAppM.Services
     public class CanBusService : ICanBusService, IDisposable
     {
         const int PollMs = 500;
-        const int DebounceNeeded = 6; // stability threshold
 
         readonly IDispatcher _dispatcher;
         readonly CancellationTokenSource _cts = new();
 
-        int _presentCount, _absentCount;
         PCAN_USB? _dev;
         ushort _handle;
 
@@ -27,6 +25,8 @@ namespace PCANAppM.Services
         CancellationTokenSource? _rxCts;
 
         bool _isConnected;
+
+        public event Action? StatusChanged; 
         public bool IsConnected
         {
             get => _isConnected;
@@ -34,7 +34,8 @@ namespace PCANAppM.Services
             {
                 if (_isConnected == value) return;
                 _isConnected = value;
-                EnergySaverStatusChangedEventArgs?.Invoke(); 
+                StatusChanged?.Invoke(); 
+                OnPropertyChanged(nameof(IsConnected));
             }
         }
 
@@ -160,6 +161,11 @@ namespace PCANAppM.Services
             }
         }
         // --------------------------------
+
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
     }
 }
 #endif
