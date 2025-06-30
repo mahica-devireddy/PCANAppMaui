@@ -1,5 +1,6 @@
+#if WINDOWS
 using System;
-using System.Timers;
+using Timer = System.Timers.Timer;
 using Peak.Can.Basic;
 using PCANAppM.Platforms.Windows;  // for PCAN_USB helper
 using TPCANHandle = Peak.Can.Basic.TPCANHandle;
@@ -116,3 +117,5 @@ namespace PCANAppM.Services
         }
     }
 }
+
+#endif
