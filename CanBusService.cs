@@ -1,8 +1,7 @@
 #if WINDOWS
 
 using System;
-using System.Text;
-using Timer = System.Timers.Timer;
+using System.Timers;
 using Peak.Can.Basic;
 using TPCANHandle = Peak.Can.Basic.TPCANHandle;
 using TPCANStatus = Peak.Can.Basic.TPCANStatus;
@@ -13,9 +12,10 @@ namespace PCANAppM.Services
 {
     public class CanBusService : ICanBusService, IDisposable
     {
+        private const TPCANHandle Channel = PCANBasic.PCAN_USBBUS1;
         private readonly Timer _timer;
-        private bool _isConnected;
         private bool _isInitialized;
+        private bool _isConnected;
         private string _deviceName = "";
 
         public event EventHandler<bool> ConnectionStatusChanged = delegate { };
@@ -24,46 +24,57 @@ namespace PCANAppM.Services
 
         public CanBusService()
         {
-            _timer = new Timer(1000);
-            _timer.AutoReset = true;
+            // 1Hz poll to detect plug-in, then watch driver status
+            _timer = new Timer(1000) { AutoReset = true };
             _timer.Elapsed += (_, __) => CheckStatus();
         }
 
-        public void StartMonitoring() => _timer.Start();
-        public void StopMonitoring() => _timer.Stop();
+        public void StartMonitoring()
+        {
+            _timer.Start();
+        }
+
+        public void StopMonitoring()
+        {
+            _timer.Stop();
+
+            if (_isInitialized)
+            {
+                PCANBasic.Uninitialize(Channel);
+                _isInitialized = false;
+            }
+        }
 
         private void CheckStatus()
         {
-            var devices = PCAN_USB.GetUSBDevices();
-            bool nowPresent = devices != null && devices.Count > 0;
-
-            // 1) If it just appeared, initialize at 250 kbit/s
-            if (nowPresent && !_isInitialized)
+            // Step 1: if not yet initialized, look for the USB device
+            if (!_isInitialized)
             {
-                var initResult = PCANBasic.Initialize(
-                    PCANBasic.PCAN_USBBUS1,
-                    TPCANBaudrate.PCAN_BAUD_250K
-                );
-
-                _isInitialized = (initResult == TPCANStatus.PCAN_ERROR_OK);
-                if (!_isInitialized)
+                var devs = PCAN_USB.GetUSBDevices();
+                if (devs != null && devs.Count > 0)
                 {
-                    // failed to init — treat as not present
-                    nowPresent = false;
+                    // remember name once
+                    _deviceName = devs[0];
+
+                    // try to bring up the channel at 250k
+                    var init = PCANBasic.Initialize(Channel, TPCANBaudrate.PCAN_BAUD_250K);
+                    if (init == TPCANStatus.PCAN_ERROR_OK)
+                        _isInitialized = true;
                 }
             }
-            // 2) If it just disappeared, uninitialize
-            else if (!nowPresent && _isInitialized)
+
+            // Step 2: if initialized, ask the driver if link is still good
+            bool nowConnected = false;
+            if (_isInitialized)
             {
-                PCANBasic.Uninitialize(PCANBasic.PCAN_USBBUS1);
-                _isInitialized = false;
+                var st = PCANBasic.GetStatus(Channel);
+                nowConnected = (st == TPCANStatus.PCAN_ERROR_OK);
             }
 
-            // 3) Fire event only on actual connection‐state change
-            if (nowPresent != _isConnected)
+            // Step 3: fire event only when real change happens
+            if (nowConnected != _isConnected)
             {
-                _isConnected = nowPresent;
-                _deviceName = _isConnected ? devices[0] : string.Empty;
+                _isConnected = nowConnected;
                 ConnectionStatusChanged?.Invoke(this, _isConnected);
             }
         }
@@ -76,12 +87,7 @@ namespace PCANAppM.Services
             TPCANStatus status;
             do
             {
-                status = PCANBasic.Read(
-                    PCANBasic.PCAN_USBBUS1,
-                    out var msg,
-                    out var ts
-                );
-
+                status = PCANBasic.Read(Channel, out var msg, out var ts);
                 if (status == TPCANStatus.PCAN_ERROR_OK)
                     onMessageReceived?.Invoke(msg, ts);
                 else if (status != TPCANStatus.PCAN_ERROR_QRCVEMPTY)
@@ -96,9 +102,6 @@ namespace PCANAppM.Services
         {
             StopMonitoring();
             _timer.Dispose();
-
-            if (_isInitialized)
-                PCANBasic.Uninitialize(PCANBasic.PCAN_USBBUS1);
         }
     }
 }
