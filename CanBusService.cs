@@ -1,121 +1,166 @@
 #if WINDOWS
 using System;
-using Timer = System.Timers.Timer;
-using Peak.Can.Basic;
-using PCANAppM.Platforms.Windows;  // for PCAN_USB helper
-using TPCANHandle = Peak.Can.Basic.TPCANHandle;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Timers;
+using PCANAppM.Platforms.Windows;
 
 namespace PCANAppM.Services
 {
-    public class CanBusService : ICanBusService
+    public class CanBusService : IDisposable
     {
-        private readonly Timer _pollTimer;
-        private TPCANHandle _currentHandle;
-        private bool _isInitialized;
-        private bool _isConnected;
-        private string _deviceName = string.Empty;
+        private PCAN_USB _pcan = new PCAN_USB();
+        private List<string> _lastDeviceList = new();
+        private System.Timers.Timer? _devicePollTimer;
+        private int _errorCount = 10;
 
-        public event EventHandler<bool> ConnectionStatusChanged = delegate { };
-        public bool IsConnected => _isConnected;
-        public string DeviceName => _deviceName;
+        // Events for UI binding
+        public event Action<string>? Feedback;
+        public event Action<PCAN_USB.Packet>? MessageReceived;
+        public event Action? DeviceListChanged;
+        public event Action<string>? ErrorPrompt;
+        public event Action? LoggingStarted;
+        public event Action? LoggingStopped;
+
+        // State
+        public List<string> AvailableDevices { get; private set; } = new();
+        public List<PCAN_USB.Packet> ReceivedPackets => _pcan.Packets;
+        public bool IsConnected => _pcan != null && _pcan.PeakCANHandle != 0;
+        public string DeviceName { get; private set; } = string.Empty;
+        public string[] CANBaudRates => PCAN_USB.CANBaudRates;
 
         public CanBusService()
         {
-            _pollTimer = new Timer(1000) { AutoReset = true };
-            _pollTimer.Elapsed += (_, __) => PollForDevice();
+            // Feedback and message events
+            _pcan.Feedback += msg => Feedback?.Invoke(msg);
+            _pcan.MessageReceived += pkt => MessageReceived?.Invoke(pkt);
+
+            // Start polling for device changes
+            _devicePollTimer = new System.Timers.Timer(1000);
+            _devicePollTimer.Elapsed += DevicePollTimer_Elapsed;
+            _devicePollTimer.AutoReset = true;
+            _devicePollTimer.Start();
+
+            // Initial device scan
+            ScanDevices();
         }
 
-        public void StartMonitoring() => _pollTimer.Start();
-        public void StopMonitoring() => _pollTimer.Stop();
-
-        private void PollForDevice()
+        private void DevicePollTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-            var list = PCAN_USB.GetUSBDevices();
-            bool found = list != null && list.Count > 0;
-
-            // on first plug-in, initialize
-            if (found && !_isInitialized)
-            {
-                _deviceName    = list[0];
-                // DecodePEAKHandle returns UInt16; cast to TPCANHandle
-                _currentHandle = (TPCANHandle)PCAN_USB.DecodePEAKHandle(_deviceName);
-                var init = PCANBasic.Initialize(
-                    _currentHandle,
-                    TPCANBaudrate.PCAN_BAUD_250K
-                );
-                _isInitialized = init == TPCANStatus.PCAN_ERROR_OK;
-                if (!_isInitialized)
-                    _deviceName = string.Empty;
-            }
-            // on unplug, tear down
-            else if (!found && _isInitialized)
-            {
-                PCANBasic.Uninitialize(_currentHandle);
-                _isInitialized = false;
-                _deviceName    = string.Empty;
-            }
-
-            // driver-level status
-            bool nowUp = false;
-            if (_isInitialized)
-            {
-                var st = PCANBasic.GetStatus(_currentHandle);
-                nowUp = st == TPCANStatus.PCAN_ERROR_OK;
-            }
-
-            if (nowUp != _isConnected)
-            {
-                _isConnected = nowUp;
-                ConnectionStatusChanged?.Invoke(this, _isConnected);
-            }
+            ScanDevices();
         }
 
-        public TPCANStatus ReadMessages(Action<TPCANMsg, TPCANTimestamp> onMessage)
+        private void ScanDevices()
         {
-            if (!_isInitialized)
-                return TPCANStatus.PCAN_ERROR_INITIALIZE;
+            var currentDevices = PCAN_USB.GetUSBDevices();
+            bool changed = false;
 
-            TPCANStatus rc;
-            do
+            if (_lastDeviceList.Count != currentDevices.Count)
             {
-                rc = PCANBasic.Read(_currentHandle, out var msg, out var ts);
-                if (rc == TPCANStatus.PCAN_ERROR_OK)
-                    onMessage?.Invoke(msg, ts);
-                else if (rc != TPCANStatus.PCAN_ERROR_QRCVEMPTY)
-                    return rc;
+                changed = true;
             }
-            while (rc == TPCANStatus.PCAN_ERROR_OK);
-
-            return TPCANStatus.PCAN_ERROR_OK;
-        }
-
-        public TPCANStatus SendFrame(uint id, byte[] data, bool extended = false)
-        {
-            if (!_isInitialized)
-                return TPCANStatus.PCAN_ERROR_INITIALIZE;
-
-            var msg = new TPCANMsg
+            else
             {
-                ID      = id,
-                LEN     = (byte)Math.Min(data.Length, 8),
-                MSGTYPE = extended
-                    ? TPCANMessageType.PCAN_MESSAGE_EXTENDED
-                    : TPCANMessageType.PCAN_MESSAGE_STANDARD,
-                DATA    = new byte[8]
-            };
-            Array.Copy(data, msg.DATA, msg.LEN);
+                for (int i = 0; i < _lastDeviceList.Count; i++)
+                {
+                    if (_lastDeviceList[i] != currentDevices[i])
+                    {
+                        changed = true;
+                        break;
+                    }
+                }
+            }
 
-            return PCANBasic.Write(_currentHandle, ref msg);
+            if (changed)
+            {
+                _lastDeviceList = new List<string>(currentDevices);
+                AvailableDevices = new List<string>(currentDevices);
+                DeviceListChanged?.Invoke();
+
+                if (AvailableDevices.Count == 0)
+                {
+                    if ((_errorCount++ % 10) == 0)
+                        ErrorPrompt?.Invoke("Plug in a PEAK PCAN USB Adapter");
+                }
+                else
+                {
+                    _errorCount = 0;
+                }
+            }
         }
+
+        public bool Initialize(string deviceName, string baudRate, bool enableRead = false)
+        {
+            var handle = PCAN_USB.DecodePEAKHandle(deviceName);
+            if (handle == 0)
+                return false;
+
+            _pcan.Uninitialize();
+            _pcan = new PCAN_USB();
+            _pcan.Feedback += msg => Feedback?.Invoke(msg);
+            _pcan.MessageReceived += pkt => MessageReceived?.Invoke(pkt);
+
+            DeviceName = deviceName;
+            _pcan.PeakCANHandle = handle;
+            var status = _pcan.InitializeCAN(handle, baudRate, enableRead);
+            return status == Peak.Can.Basic.TPCANStatus.PCAN_ERROR_OK;
+        }
+
+        public void Uninitialize()
+        {
+            _pcan.Uninitialize();
+            DeviceName = string.Empty;
+        }
+
+        public bool SetIdentify(string deviceName, bool on)
+        {
+            var handle = PCAN_USB.DecodePEAKHandle(deviceName);
+            if (handle > 0)
+                return PCAN_USB.SetIdentify(handle, on);
+            return false;
+        }
+
+        public Peak.Can.Basic.TPCANStatus SendFrame(uint id, int dataLength, byte[] data, bool isExtended = false)
+        {
+            return _pcan.WriteFrame(id, dataLength, data, isExtended);
+        }
+
+        public void StartReading() => _pcan.StartReading();
+        public void StopReading() => _pcan.StopReading();
+
+        public void SetOverwriteLastPacket(bool overwrite)
+        {
+            _pcan.OverwriteLastPacket = overwrite;
+        }
+
+        public void ClearPackets()
+        {
+            _pcan.Packets = new List<PCAN_USB.Packet>();
+        }
+
+        // Logging
+        //public bool StartLogging(string directory, bool multiFile, bool dateFiles, uint traceSize)
+        //{
+        //    var result = _pcan.StartLogging(directory, multiFile, dateFiles, traceSize);
+        //    if (result)
+        //        LoggingStarted?.Invoke();
+        //    return result;
+        //}
+
+        //public bool StopLogging()
+        //{
+        //    var result = _pcan.StopLogging();
+        //    if (result)
+        //        LoggingStopped?.Invoke();
+        //    return result;
+        //}
 
         public void Dispose()
         {
-            _pollTimer.Stop();
-            _pollTimer.Dispose();
-            if (_isInitialized)
-                PCANBasic.Uninitialize(_currentHandle);
+            _devicePollTimer?.Stop();
+            _devicePollTimer?.Dispose();
+            _pcan.Uninitialize();
         }
     }
 }
-
 #endif
