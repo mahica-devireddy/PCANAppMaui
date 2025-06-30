@@ -1,105 +1,79 @@
 #if WINDOWS
 
 using System;
-using System.Timers;
+using System.Text;
+using Timer = System.Timers.Timer;
 using Peak.Can.Basic;
+using TPCANHandle = System.UInt16;
+using TPCANStatus = Peak.Can.Basic.TPCANStatus;
+using TPCANParameter = Peak.Can.Basic.TPCANParameter;
+using PCANAppM.Platforms.Windows;
 
 namespace PCANAppM.Services
 {
     public class CanBusService : ICanBusService, IDisposable
     {
         private readonly Timer _timer;
-        private const TPCANHandle Channel = PCANBasic.PCAN_USBBUS1;
-        private bool _isInitialized;
         private bool _isConnected;
+        private string _deviceName = "";
 
         public event EventHandler<bool> ConnectionStatusChanged = delegate { };
         public bool IsConnected => _isConnected;
-        public string DeviceName => _isConnected ? Channel.ToString() : string.Empty;
+        public string DeviceName => _deviceName;
 
         public CanBusService()
         {
-            // poll every second looking for the dongle
             _timer = new Timer(1000);
-            _timer.AutoReset = true;
-            _timer.Elapsed += (_, __) => CheckStatusAndInit();
+            _timer.Elapsed += (_, __) => CheckStatus();
         }
 
-        public void StartMonitoring()
+        public void StartMonitoring() => _timer.Start();
+        public void StopMonitoring() => _timer.Stop();
+
+        private void CheckStatus()
         {
-            _timer.Start();
-        }
+            var devices = PCAN_USB.GetUSBDevices();
+            bool nowConnected = devices != null && devices.Count > 0;
 
-        public void StopMonitoring()
-        {
-            _timer.Stop();
-            TearDownChannel();
-        }
-
-        private void CheckStatusAndInit()
-        {
-            // first, ask the driver if the channel is alive
-            TPCANStatus status = _isInitialized
-                ? PCANBasic.GetStatus(Channel)
-                : TPCANStatus.PCAN_ERROR_INITIALIZE;
-
-            bool nowPresent = status == TPCANStatus.PCAN_ERROR_OK;
-
-            if (nowPresent && !_isInitialized)
+            if (nowConnected != _isConnected)
             {
-                // device just appeared → try to initialize
-                var initResult = PCANBasic.Initialize(Channel, TPCANBaudrate.PCAN_BAUD_250K);
-                _isInitialized = (initResult == TPCANStatus.PCAN_ERROR_OK);
-                nowPresent = _isInitialized;
-            }
-            else if (!nowPresent && _isInitialized)
-            {
-                // device just vanished → uninitialize
-                TearDownChannel();
-            }
-
-            // only fire event when connection state flips
-            if (nowPresent != _isConnected)
-            {
-                _isConnected = nowPresent;
+                _isConnected = nowConnected;
+                _deviceName = _isConnected ? devices[0] : "";
                 ConnectionStatusChanged?.Invoke(this, _isConnected);
             }
-        }
-
-        private void TearDownChannel()
-        {
-            if (_isInitialized)
-            {
-                PCANBasic.Uninitialize(Channel);
-                _isInitialized = false;
-            }
-        }
+        } 
 
         public TPCANStatus ReadMessages(Action<TPCANMsg, TPCANTimestamp> onMessageReceived)
         {
-            if (!_isInitialized)
-                return TPCANStatus.PCAN_ERROR_INITIALIZE;
-
+            TPCANMsg canMsg;
+            TPCANTimestamp canTimestamp;
+            TPCANHandle handle = PCANBasic.PCAN_USBBUS1;
             TPCANStatus status;
+
+            // Read all messages in the receive queue
             do
             {
-                status = PCANBasic.Read(Channel, out var msg, out var ts);
-
+                status = PCANBasic.Read(handle, out canMsg, out canTimestamp);
+                if (status != TPCANStatus.PCAN_ERROR_QRCVEMPTY && status != TPCANStatus.PCAN_ERROR_OK)
+                {
+                    // Optionally handle other errors here
+                    if (status == TPCANStatus.PCAN_ERROR_ILLOPERATION)
+                        break;
+                }
                 if (status == TPCANStatus.PCAN_ERROR_OK)
-                    onMessageReceived?.Invoke(msg, ts);
-                else if (status != TPCANStatus.PCAN_ERROR_QRCVEMPTY)
-                    return status;
+                {
+                    onMessageReceived?.Invoke(canMsg, canTimestamp);
+                }
             }
-            while (status == TPCANStatus.PCAN_ERROR_OK);
+            while (handle > 0 && (status != TPCANStatus.PCAN_ERROR_QRCVEMPTY));
 
-            return TPCANStatus.PCAN_ERROR_OK;
+            return status;
         }
 
         public void Dispose()
         {
-            _timer.Stop();
+            StopMonitoring();
             _timer.Dispose();
-            TearDownChannel();
         }
     }
 }
