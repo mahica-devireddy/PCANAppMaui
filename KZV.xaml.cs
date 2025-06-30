@@ -152,3 +152,107 @@ namespace PCANAppM
     }
 }
 #endif
+
+
+#if WINDOWS
+
+using System;
+using System.Globalization;
+using System.Timers;
+using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using LocalizationResourceManager.Maui;
+using PCANAppM.Services;
+using Peak.Can.Basic;
+
+namespace PCANAppM
+{
+    public partial class KZV : ContentPage
+    {
+        private readonly ILocalizationResourceManager _loc;
+        private readonly ICanBusService _bus;
+        private Timer? _readTimer;
+
+        public KZV(
+            ILocalizationResourceManager localizationResourceManager,
+            ICanBusService canBusService)
+        {
+            InitializeComponent();
+
+            _loc = localizationResourceManager;
+            _bus = canBusService;
+
+            // Subscribe once
+            _bus.ConnectionStatusChanged += OnConnectionStatusChanged;
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+
+            // Begin monitoring (this will also ensure PCAN channel is initialized)
+            _bus.StartMonitoring();
+
+            // Read loop
+            _readTimer = new Timer(50);
+            _readTimer.Elapsed += (_, __) => ReadCanMessages();
+            _readTimer.AutoReset = true;
+            _readTimer.Start();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+
+            // Stop read loop
+            if (_readTimer is not null)
+            {
+                _readTimer.Stop();
+                _readTimer.Dispose();
+                _readTimer = null;
+            }
+
+            // Stop monitoring (but do NOT Dispose the shared service here)
+            _bus.StopMonitoring();
+
+            // Unsubscribe
+            _bus.ConnectionStatusChanged -= OnConnectionStatusChanged;
+        }
+
+        private void OnConnectionStatusChanged(object? sender, bool isConnected)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                ConnectionStatusLabel.Text = isConnected
+                    ? _loc["Connected"]
+                    : _loc["Disconnected"];
+            });
+        }
+
+        private void ReadCanMessages()
+        {
+            // Only try reading if we know we're connected
+            if (!_bus.IsConnected)
+                return;
+
+            _bus.ReadMessages((msg, ts) =>
+            {
+                // only extended frames
+                if ((msg.MSGTYPE & TPCANMessageType.PCAN_MESSAGE_EXTENDED) == 0)
+                    return;
+
+                var fullHex = msg.ID.ToString("X");
+                var lastTwo = fullHex.Length >= 2
+                    ? fullHex.Substring(fullHex.Length - 2)
+                    : fullHex;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    LatestCanIdLabel.Text = $"{_loc["CurrentKZV"]}: {lastTwo}";
+                });
+            });
+        }
+    }
+}
+#endif
+
