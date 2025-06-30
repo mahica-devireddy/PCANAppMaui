@@ -1,69 +1,168 @@
+
+#if WINDOWS
 using System;
+using System.Collections.Generic;
+using System.Timers;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.ApplicationModel;   // for MainThread
-using PCANAppM.Services;                // your ICanBusService + CanBusService
+using Timer = System.Timers.Timer;
+using System.Threading.Tasks;
+using LocalizationResourceManager.Maui;
+using System.Globalization;
+using PCANAppM.Resources.Languages;
+using PCANAppM.Services;
+using PCANAppM.Platforms.Windows;
 
 namespace PCANAppM
 {
     public partial class MainPage : ContentPage
     {
-        private readonly ICanBusService _canBusService;
+        private readonly ILocalizationResourceManager _loc;
+        private readonly CanBusService _bus;
+        private int _previousDeviceCount = 0; // Track previous device count
 
-        public MainPage()
+        public MainPage(ILocalizationResourceManager localizationResourceManager, CanBusService canBusService)
         {
+            _loc = localizationResourceManager;
+            _bus = canBusService;
             InitializeComponent();
 
-            // if you’re not using DI, just new it up here:
-            _canBusService = new CanBusService();
+            // Subscribe to service events
+            _bus.DeviceListChanged += OnDeviceListChanged;
+            _bus.Feedback += OnFeedback;
+            _bus.ErrorPrompt += OnErrorPrompt;
+            _bus.LoggingStarted += OnLoggingStarted;
+            _bus.LoggingStopped += OnLoggingStopped;
+            _bus.MessageReceived += OnMessageReceived;
 
-            // hook the event
-            _canBusService.ConnectionStatusChanged += OnConnectionStatusChanged;
-
-            // set initial UI state
-            UpdateStatus(_canBusService.IsConnected);
-
-            // kick off polling
-            _canBusService.StartMonitoring();
+            UpdateDeviceList();
         }
 
-        private void OnConnectionStatusChanged(object sender, bool isConnected)
+        protected override void OnAppearing()
         {
-            // ensure UI thread
-            MainThread.BeginInvokeOnMainThread(() =>
-                UpdateStatus(isConnected)
-            );
-        }
-
-        private void UpdateStatus(bool isConnected)
-        {
-            if (isConnected)
-            {
-                StatusLabel.Text        = "Connected";
-                StatusImage1.Source     = "green_check.png";
-            }
-            else
-            {
-                StatusLabel.Text        = "Disconnected";
-                StatusImage1.Source     = "red_ex.png";
-            }
+            base.OnAppearing();
+            UpdateDeviceList();
         }
 
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
-            _canBusService.StopMonitoring();
-            _canBusService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+            _bus.DeviceListChanged -= OnDeviceListChanged;
+            _bus.Feedback -= OnFeedback;
+            _bus.ErrorPrompt -= OnErrorPrompt;
+            _bus.LoggingStarted -= OnLoggingStarted;
+            _bus.LoggingStopped -= OnLoggingStopped;
+            _bus.MessageReceived -= OnMessageReceived;
         }
 
-        // XAML‐wired handlers you already have
-        private void OnStatusImageClicked(object sender, EventArgs e)
+        private void OnDeviceListChanged()
         {
-            if (!_canBusService.IsConnected)
+            MainThread.BeginInvokeOnMainThread(UpdateDeviceList);
+        }
+
+        private void UpdateDeviceList()
+        {
+            var devices = _bus.AvailableDevices;
+            if (this.FindByName<ListView>("DeviceListView") is ListView deviceListView)
+                deviceListView.ItemsSource = devices;
+
+            string status;
+            string imageSource;
+
+            // Device plugged in (transition from 0 to >0)
+            if (_previousDeviceCount == 0 && devices.Count > 0)
+            {
+                status = (devices[0] ?? "PCAN USB") + " " + _loc["Status2"];
+                imageSource = "green_check.png";
+            }
+            // Device unplugged (transition from >0 to 0)
+            else if (_previousDeviceCount > 0 && devices.Count == 0)
+            {
+                status = _loc["Status1"];
+                imageSource = "red_ex.png";
+            }
+            // No transition, just update to current state
+            else if (devices.Count > 0)
+            {
+                status = (devices[0] ?? "PCAN USB") + " " + _loc["Status2"];
+                imageSource = "green_check.png";
+            }
+            else
+            {
+                status = _loc["Status1"];
+                imageSource = "red_ex.png";
+            }
+
+            _previousDeviceCount = devices.Count;
+
+            if (this.FindByName<Label>("StatusLabel") is Label statusLabel)
+                statusLabel.Text = status;
+            if (this.FindByName<ImageButton>("StatusImage") is ImageButton StatusImage)
+                StatusImage.Source = imageSource;
+        }
+
+        private void OnFeedback(string message)
+        {
+            // Optionally display feedback to the user (e.g., in a status bar or toast)
+            // DisplayAlert("Feedback", message, "OK"); // or use a Snackbar, etc.
+        }
+
+        private void OnErrorPrompt(string message)
+        {
+            //MainThread.BeginInvokeOnMainThread(async () =>
+            //{
+            //    //await DisplayAlert("Device Error", message, "OK");
+            //});
+        }
+
+        private void OnLoggingStarted()
+        {
+            // Optionally update UI to reflect logging started
+        }
+
+        private void OnLoggingStopped()
+        {
+            // Optionally update UI to reflect logging stopped
+        }
+
+        private void OnMessageReceived(PCAN_USB.Packet packet)
+        {
+            // Optionally update UI with new CAN message
+        }
+
+        private void OnDeviceSelected(object sender, SelectedItemChangedEventArgs e)
+        {
+            if (e.SelectedItem is string deviceName)
+            {
+                bool success = _bus.Initialize(deviceName, "250 kbit/s", enableRead: false);
+                UpdateDeviceList();
+                if (!success)
+                {
+                    DisplayAlert("Error", "Failed to initialize device.", "OK");
+                }
+            }
+        }
+
+        private async void OnStatusImageClicked(object sender, EventArgs e)
+        {
+            var devices = _bus.AvailableDevices;
+            if (devices.Count > 0)
+            {
+                // Device is connected, navigate to Menu
+                await Navigation.PushAsync(new Menu(_loc, _bus));
+            }
+            else
+            {
+                // Device is not connected, show connection dialog
                 ConnectionDialog.IsVisible = true;
+                MainContent.IsVisible = false;
+            }
         }
 
         private void OnConnectionDialogOkClicked(object sender, EventArgs e)
-            => ConnectionDialog.IsVisible = false;
+        {
+            MainContent.IsVisible = true;
+            ConnectionDialog.IsVisible = false;
+        }
 
         private void OnOshkoshLogoClicked(object sender, EventArgs e) { /* … */ }
         private void OnLanguageButtonClicked(object sender, EventArgs e) { /* … */ }
@@ -73,8 +172,10 @@ namespace PCANAppM
         private void OnFluidTankLevelMenuClicked(object sender, EventArgs e) { /* … */ }
         private void OnCloseSideMenuClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible    = false;
+            SideMenu.IsVisible = false;
             SideMenuDim.IsVisible = false;
+            UpdateDeviceList();
         }
     }
 }
+#endif
