@@ -2,34 +2,45 @@
 
 using System;
 using Peak.Can.Basic;
-using System;
-using System.ComponentModel;
-using PCANAppM.Platforms.Windows;
 
 namespace PCANAppM.Services
 {
-
     public interface ICanBusService : IDisposable
     {
-        //bool IsConnected { get; }
-        //string? DeviceName { get; }
-        //event Action? StatusChanged;
-        //event Action<PCAN_USB.Packet>? FrameReceived;
-        //void SendFrame(uint id, byte[] do data, bool extended);
-
+        /// <summary>
+        /// Fires when the hardware connection state changes (plug in / unplug).
+        /// </summary>
         event EventHandler<bool> ConnectionStatusChanged;
 
+        /// <summary>
+        /// True when the bus is open and the device is present.
+        /// </summary>
         bool IsConnected { get; }
 
+        /// <summary>
+        /// The formatted name of the current USB device (or empty).
+        /// </summary>
         string DeviceName { get; }
 
+        /// <summary>
+        /// Begin polling for device presence and auto‐initialize.
+        /// </summary>
         void StartMonitoring();
 
+        /// <summary>
+        /// Stop polling and uninitialize if necessary.
+        /// </summary>
         void StopMonitoring();
 
-        //TPCANStatus SendFrame(uint id, int dataLength, byte[] data);
+        /// <summary>
+        /// Read all queued CAN messages; invokes callback for each.
+        /// </summary>
         TPCANStatus ReadMessages(Action<TPCANMsg, TPCANTimestamp> onMessageReceived);
 
+        /// <summary>
+        /// Send a single CAN frame.
+        /// </summary>
+        TPCANStatus SendFrame(uint id, byte[] data, bool extended = false);
     }
 }
 #endif
