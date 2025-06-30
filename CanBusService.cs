@@ -2,13 +2,14 @@ using System;
 using System.Timers;
 using Peak.Can.Basic;
 using PCANAppM.Platforms.Windows;  // for PCAN_USB helper
+using TPCANHandle = Peak.Can.Basic.TPCANHandle;
 
 namespace PCANAppM.Services
 {
     public class CanBusService : ICanBusService
     {
         private readonly Timer _pollTimer;
-        private PCANHandle _currentHandle;
+        private TPCANHandle _currentHandle;
         private bool _isInitialized;
         private bool _isConnected;
         private string _deviceName = string.Empty;
@@ -35,7 +36,8 @@ namespace PCANAppM.Services
             if (found && !_isInitialized)
             {
                 _deviceName    = list[0];
-                _currentHandle = PCAN_USB.DecodePEAKHandle(_deviceName);
+                // DecodePEAKHandle returns UInt16; cast to TPCANHandle
+                _currentHandle = (TPCANHandle)PCAN_USB.DecodePEAKHandle(_deviceName);
                 var init = PCANBasic.Initialize(
                     _currentHandle,
                     TPCANBaudrate.PCAN_BAUD_250K
@@ -70,7 +72,7 @@ namespace PCANAppM.Services
         public TPCANStatus ReadMessages(Action<TPCANMsg, TPCANTimestamp> onMessage)
         {
             if (!_isInitialized)
-                return TPCANStatus.PCAN_ERROR_NOT_INITIALIZED;
+                return TPCANStatus.PCAN_ERROR_INITIALIZE;
 
             TPCANStatus rc;
             do
@@ -89,7 +91,7 @@ namespace PCANAppM.Services
         public TPCANStatus SendFrame(uint id, byte[] data, bool extended = false)
         {
             if (!_isInitialized)
-                return TPCANStatus.PCAN_ERROR_NOT_INITIALIZED;
+                return TPCANStatus.PCAN_ERROR_INITIALIZE;
 
             var msg = new TPCANMsg
             {
