@@ -1,40 +1,76 @@
-<!-- CONFIRM CAN ID DIALOG -->
-        <Grid Grid.Row="1" VerticalOptions="Center" HorizontalOptions="Center">
-            <Frame BackgroundColor="Black"
-                   Padding="0"
-                   CornerRadius="10"
-                   WidthRequest="1000"
-                   HeightRequest="400"
-                   HasShadow="False"
-                   BorderColor="Transparent">
-                <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*" BackgroundColor="LightGray">
-                    <!-- White Header Section -->
-                    <StackLayout Grid.Row="0" BackgroundColor="White" Padding="40,30" Spacing="10">
-                        <Label x:Name="ConfirmText"
-                               Text="Set The CAN ID to 195"
-                               FontSize="50"
-                               FontAttributes="Bold"
-                               TextColor="Black"
-                               FontFamily="BarlowRegular"
-                               HorizontalTextAlignment="Center" />
-                    </StackLayout>
+using System;
+using System.Timers;
+using Microsoft.Maui;
+using Microsoft.Maui.Controls;
+using LocalizationResourceManager.Maui;
+using PCANAppM.Services;
+using Peak.Can.Basic;
 
-                    <!-- Black separator -->
-                    <BoxView Grid.Row="1" HeightRequest="10" BackgroundColor="Black" HorizontalOptions="Fill" />
+namespace PCANAppM
+{
+    public partial class KZVPage : ContentPage
+    {
+        private readonly ILocalizationResourceManager _loc;
+        private readonly ICanBusService _canBus;
+        private Timer _readTimer;
 
-                    <!-- Confirm Button -->
-                    <StackLayout Grid.Row="2" VerticalOptions="Center" HorizontalOptions="Center" Margin="0,20,0,0">
-                        <Button Text="Confirm"
-                                FontFamily="BarlowRegular"
-                                BackgroundColor="Black"
-                                TextColor="White"
-                                FontSize="35"
-                                WidthRequest="200"
-                                HeightRequest="55"
-                                CornerRadius="30"
-                                HorizontalOptions="Center"
-                                Clicked="OnConfirmClicked" />
-                    </StackLayout>
-                </Grid>
-            </Frame>
-        </Grid>
+        public KZVPage(
+            ILocalizationResourceManager loc,
+            ICanBusService canBusService)
+        {
+            InitializeComponent();
+            _loc    = loc;
+            _canBus = canBusService;
+            _canBus.ConnectionStatusChanged += OnConnectionChanged;
+        }
+
+        protected override void OnAppearing()
+        {
+            base.OnAppearing();
+            _canBus.StartMonitoring();
+
+            _readTimer = new Timer(50);
+            _readTimer.Elapsed += (_, __) => ReadMessages();
+            _readTimer.AutoReset = true;
+            _readTimer.Start();
+        }
+
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            _readTimer?.Stop();
+            _canBus.StopMonitoring();
+            _canBus.ConnectionStatusChanged -= OnConnectionChanged;
+        }
+
+        private void OnConnectionChanged(object sender, bool isConnected)
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+                ConnectionStatusLabel.Text = isConnected
+                    ? _loc["Connected"]
+                    : _loc["Disconnected"]
+            );
+        }
+
+        private void ReadMessages()
+        {
+            if (!_canBus.IsConnected)
+                return;
+
+            _canBus.ReadMessages((msg, ts) =>
+            {
+                if ((msg.MSGTYPE & TPCANMessageType.PCAN_MESSAGE_EXTENDED) == 0)
+                    return;
+
+                var full = msg.ID.ToString("X");
+                var last = full.Length >= 2
+                    ? full.Substring(full.Length - 2)
+                    : full;
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                    LatestCanIdLabel.Text = $"{_loc["CurrentKZV"]}: {last}"
+                );
+            });
+        }
+    }
+}
