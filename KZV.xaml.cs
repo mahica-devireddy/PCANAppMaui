@@ -2,6 +2,7 @@
 
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Maui;
 using Microsoft.Maui.Controls;
@@ -17,21 +18,29 @@ namespace PCANAppM
     public partial class KZV : ContentPage
     {
         private readonly ILocalizationResourceManager _loc;
-        private readonly ICanBusService _bus;
+        private readonly CanBusService _bus;
 
         private Timer? _readTimer;
+        private int _previousDeviceCount = 0;
 
-        public KZV(ILocalizationResourceManager localizationResourceManager, ICanBusService canBusService)
+        public KZV(ILocalizationResourceManager localizationResourceManager, CanBusService canBusService)
         {
             _loc = localizationResourceManager;
             _bus = canBusService;
             InitializeComponent();
+
+            // Subscribe to device list changes for disconnect alert
+            _bus.DeviceListChanged += OnDeviceListChanged;
         }
 
         protected override void OnAppearing()
         {
             base.OnAppearing();
-            _readTimer = new Timer(50);
+            _previousDeviceCount = _bus.AvailableDevices.Count;
+            _bus.StartReading(); // Start reading CAN messages
+
+           
+            _readTimer = new Timer(100);
             _readTimer.Elapsed += (_, __) => ReadCanMessages();
             _readTimer.AutoReset = true;
             _readTimer.Start();
@@ -40,6 +49,8 @@ namespace PCANAppM
         protected override void OnDisappearing()
         {
             base.OnDisappearing();
+            _bus.DeviceListChanged -= OnDeviceListChanged;
+            _bus.StopReading(); // Stop reading CAN messages
             if (_readTimer != null)
             {
                 _readTimer.Stop();
@@ -48,97 +59,45 @@ namespace PCANAppM
             }
         }
 
-        private void ReadCanMessages()
+        // Alert if disconnected
+        private void OnDeviceListChanged()
         {
-            _bus.ReadMessages((msg, timestamp) =>
+            var devices = _bus.AvailableDevices;
+            if (_previousDeviceCount > 0 && devices.Count == 0)
             {
-                // Only process extended frames
-                if ((msg.MSGTYPE & TPCANMessageType.PCAN_MESSAGE_EXTENDED) == 0)
-                    return;
-
-                // Get the last two hex digits of the CAN ID
-                string idHex = msg.ID.ToString("X");
-                string lastTwo = idHex.Length >= 2 ? idHex.Substring(idHex.Length - 2) : idHex;
-
-                MainThread.BeginInvokeOnMainThread(() =>
+                MainThread.BeginInvokeOnMainThread(async () =>
                 {
-                    LatestCanIdLabel.Text = $"{_loc["CurrentKZV"]} {lastTwo}";
+                    await DisplayAlert("Disconnected", "PCAN USB device has been disconnected.", "OK");
                 });
-            });
+            }
+            _previousDeviceCount = devices.Count;
         }
 
-
-
-
-        //private void UpdateLatestCanIdLabel(string id)
-        //{
-        //    if (_latestCanIdLabel != null)
-        //    {
-        //        _latestCanIdLabel.Text = _loc["CurrentKZV"] + " " + id;
-        //    }
-        //}
-
-        //private async void OnSetClicked(object sender, EventArgs e)
-        //{
-        //    var newCanId = NewCanIdEntry.Text?.Trim();
-        //    if (string.IsNullOrEmpty(newCanId) || newCanId.Length > 2 || !int.TryParse(newCanId, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out _))
-        //    {
-        //        await DisplayAlert("Invalid Input", "Please enter a valid 2-digit hex CAN ID.", "OK");
-        //        return;
-        //    }
-
-        //    ConfirmText.Text = $"Set The CAN ID to {newCanId.ToUpper()}";
-        //    SetCanIdView.IsVisible = false;
-        //    ConfirmCanIdView.IsVisible = true;
-        //    _pendingNewCanId = newCanId.ToUpper();
-        //    NewCanIdEntry.Text = string.Empty;
-        //}
-
-        //private async void OnConfirmClicked(object sender, EventArgs e)
-        //{
-        //    if (string.IsNullOrEmpty(_pendingNewCanId)) return;
-
-        //    string currentId = _currentCanId ?? "00";
-        //    string newId = _pendingNewCanId.PadLeft(2, '0');
-
-        //    byte currentIdByte = byte.Parse(currentId, NumberStyles.HexNumber);
-        //    byte newIdByte = byte.Parse(newId, NumberStyles.HexNumber);
-
-        //    uint canId = (0x18EF0000u) | ((uint)currentIdByte << 8) | 0x01u;
-        //    var data = new byte[8];
-        //    data[3] = 0x04;
-        //    data[4] = newIdByte;
-
-        //    _bus.SendFrame(canId, 8, data);
-
-        //    _currentCanId = newId;
-        //    UpdateLatestCanIdLabel(newId);
-        //    ConfirmCanIdView.IsVisible = false;
-        //    InitialKzvView.IsVisible = true;
-        //}
-
-        //private void OnCancelConfirmClicked(object sender, EventArgs e)
-        //{
-        //    ConfirmCanIdView.IsVisible = false;
-        //    InitialKzvView.IsVisible = true;
-        //}
-
-        //private async void OnKZVClicked(object sender, EventArgs e)
-        //{
-        //    await Navigation.PushAsync(
-        //        new KZVConnectionStatusPage(false)); // Connection status logic removed
-        //}
-
-        //private async void OnCheckConnectionClicked(object sender, EventArgs e)
-        //{
-        //    await DisplayAlert("Connection Status", "Connection status logic removed.", "OK");
-        //}
-
-        private void OnExitClicked(object sender, EventArgs e)
+        // Display current CAN ID (last two hex digits)
+        private void ReadCanMessages()
         {
-            SetCanIdView.IsVisible = false;
-            ConfirmCanIdView.IsVisible = false;
-            InitialKzvView.IsVisible = true;
+            var latest = _bus.ReceivedPackets
+                .Where(pkt => pkt.IsExtended)
+                .OrderByDescending(pkt => pkt.Microseconds)
+                .FirstOrDefault();
+
+            string labelText;
+            if (latest != null)
+            {
+                string idHex = latest.Id.ToString("X");
+                string lastTwo = idHex.Length >= 2 ? idHex.Substring(idHex.Length - 2) : idHex;
+                labelText = $"{_loc["CurrentKZV"]} {lastTwo}";
+            }
+            else
+            {
+                labelText = $"{_loc["CurrentKZV"]} --";
+            }
+
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                if (this.FindByName<Label>("LatestCanIdLabel") is Label label)
+                    label.Text = labelText;
+            });
         }
 
         // --- Side menu handlers unchanged ---
@@ -148,111 +107,7 @@ namespace PCANAppM
         private void OnAngleSensorMenuClicked(object sender, EventArgs e) { /* … */ }
         private void OnKzValveMenuClicked(object sender, EventArgs e) { /* … */ }
         private void OnFluidTankLevelMenuClicked(object sender, EventArgs e) { /* … */ }
-        private void OnCloseSideMenuClicked(object sender, EventArgs e) {/* ...*/}
+        private void OnCloseSideMenuClicked(object sender, EventArgs e) { /* ...*/ }
     }
 }
 #endif
-
-
-#if WINDOWS
-
-using System;
-using System.Globalization;
-using System.Timers;
-using Microsoft.Maui;
-using Microsoft.Maui.Controls;
-using LocalizationResourceManager.Maui;
-using PCANAppM.Services;
-using Peak.Can.Basic;
-
-namespace PCANAppM
-{
-    public partial class KZV : ContentPage
-    {
-        private readonly ILocalizationResourceManager _loc;
-        private readonly ICanBusService _bus;
-        private Timer? _readTimer;
-
-        public KZV(
-            ILocalizationResourceManager localizationResourceManager,
-            ICanBusService canBusService)
-        {
-            InitializeComponent();
-
-            _loc = localizationResourceManager;
-            _bus = canBusService;
-
-            // Subscribe once
-            _bus.ConnectionStatusChanged += OnConnectionStatusChanged;
-        }
-
-        protected override void OnAppearing()
-        {
-            base.OnAppearing();
-
-            // Begin monitoring (this will also ensure PCAN channel is initialized)
-            _bus.StartMonitoring();
-
-            // Read loop
-            _readTimer = new Timer(50);
-            _readTimer.Elapsed += (_, __) => ReadCanMessages();
-            _readTimer.AutoReset = true;
-            _readTimer.Start();
-        }
-
-        protected override void OnDisappearing()
-        {
-            base.OnDisappearing();
-
-            // Stop read loop
-            if (_readTimer is not null)
-            {
-                _readTimer.Stop();
-                _readTimer.Dispose();
-                _readTimer = null;
-            }
-
-            // Stop monitoring (but do NOT Dispose the shared service here)
-            _bus.StopMonitoring();
-
-            // Unsubscribe
-            _bus.ConnectionStatusChanged -= OnConnectionStatusChanged;
-        }
-
-        private void OnConnectionStatusChanged(object? sender, bool isConnected)
-        {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                ConnectionStatusLabel.Text = isConnected
-                    ? _loc["Connected"]
-                    : _loc["Disconnected"];
-            });
-        }
-
-        private void ReadCanMessages()
-        {
-            // Only try reading if we know we're connected
-            if (!_bus.IsConnected)
-                return;
-
-            _bus.ReadMessages((msg, ts) =>
-            {
-                // only extended frames
-                if ((msg.MSGTYPE & TPCANMessageType.PCAN_MESSAGE_EXTENDED) == 0)
-                    return;
-
-                var fullHex = msg.ID.ToString("X");
-                var lastTwo = fullHex.Length >= 2
-                    ? fullHex.Substring(fullHex.Length - 2)
-                    : fullHex;
-
-                MainThread.BeginInvokeOnMainThread(() =>
-                {
-                    LatestCanIdLabel.Text = $"{_loc["CurrentKZV"]}: {lastTwo}";
-                });
-            });
-        }
-    }
-}
-#endif
-
