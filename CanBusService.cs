@@ -3,79 +3,77 @@
 using System;
 using System.Text;
 using Timer = System.Timers.Timer;
-using Peak.Can.Basic;                       // make sure you’ve added the Peak.Can.Basic NuGet/package
-using TPCANHandle   = System.UInt16;
-using TPCANStatus   = Peak.Can.Basic.TPCANStatus;
+using Peak.Can.Basic;
+using TPCANHandle = System.UInt16;
+using TPCANStatus = Peak.Can.Basic.TPCANStatus;
 using TPCANParameter = Peak.Can.Basic.TPCANParameter;
+using PCANAppM.Platforms.Windows;
 
 namespace PCANAppM.Services
 {
     public class CanBusService : ICanBusService, IDisposable
     {
-        private readonly Timer      _timer;
-        private readonly TPCANHandle _handle     = PCANBasic.PCAN_USBBUS1;
-        private bool                 _isConnected;
-        private string               _deviceName = "";
+        private readonly Timer _timer;
+        private bool _isConnected;
+        private string _deviceName = "";
 
-        public event EventHandler<bool> ConnectionStatusChanged;
-        public bool   IsConnected  => _isConnected;
-        public string DeviceName   => _deviceName;
+        public event EventHandler<bool> ConnectionStatusChanged = delegate { };
+        public bool IsConnected => _isConnected;
+        public string DeviceName => _deviceName;
 
         public CanBusService()
         {
-            // initialize the channel at 250 kbit/s (or whatever baud you need)
-            var initResult = PCANBasic.Initialize(
-                _handle,
-                TPCANBaudrate.PCAN_BAUD_250K
-            );
-            // you can check initResult != PCAN_ERROR_OK to log/fail if you want
-
             _timer = new Timer(1000);
             _timer.Elapsed += (_, __) => CheckStatus();
         }
 
         public void StartMonitoring() => _timer.Start();
-        public void StopMonitoring()  => _timer.Stop();
+        public void StopMonitoring() => _timer.Stop();
 
         private void CheckStatus()
         {
-            // static call—no instance
-            var status       = PCANBasic.GetStatus(_handle);
-            bool nowConnected = (status == TPCANStatus.PCAN_ERROR_OK);
+            var devices = PCAN_USB.GetUSBDevices();
+            bool nowConnected = devices != null && devices.Count > 0;
 
             if (nowConnected != _isConnected)
             {
                 _isConnected = nowConnected;
-
-                if (_isConnected)
-                {
-                    // --- NEW: read the hardware name on connect ---
-                    var sb = new StringBuilder(PCANBasic.MAX_LENGTH_HARDWARE_NAME);
-                    var res = PCANBasic.GetValue(
-                        _handle,
-                        TPCANParameter.PCAN_HARDWARE_NAME,
-                        sb,
-                        PCANBasic.MAX_LENGTH_HARDWARE_NAME
-                    );
-                    _deviceName = (res == TPCANStatus.PCAN_ERROR_OK) 
-                                ? sb.ToString() 
-                                : "Unknown PCAN USB";
-                }
-                else
-                {
-                    _deviceName = "";
-                }
-                // --------------------------------------------------
-
+                _deviceName = _isConnected ? devices[0] : "";
                 ConnectionStatusChanged?.Invoke(this, _isConnected);
             }
+        } 
+
+        public TPCANStatus ReadMessages(Action<TPCANMsg, TPCANTimestamp> onMessageReceived)
+        {
+            TPCANMsg canMsg;
+            TPCANTimestamp canTimestamp;
+            TPCANHandle handle = PCANBasic.PCAN_USBBUS1;
+            TPCANStatus status;
+
+            // Read all messages in the receive queue
+            do
+            {
+                status = PCANBasic.Read(handle, out canMsg, out canTimestamp);
+                if (status != TPCANStatus.PCAN_ERROR_QRCVEMPTY && status != TPCANStatus.PCAN_ERROR_OK)
+                {
+                    // Optionally handle other errors here
+                    if (status == TPCANStatus.PCAN_ERROR_ILLOPERATION)
+                        break;
+                }
+                if (status == TPCANStatus.PCAN_ERROR_OK)
+                {
+                    onMessageReceived?.Invoke(canMsg, canTimestamp);
+                }
+            }
+            while (handle > 0 && (status != TPCANStatus.PCAN_ERROR_QRCVEMPTY));
+
+            return status;
         }
 
         public void Dispose()
         {
             StopMonitoring();
             _timer.Dispose();
-            PCANBasic.Uninitialize(_handle);
         }
     }
 }
