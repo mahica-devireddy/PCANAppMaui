@@ -44,31 +44,34 @@ namespace PCANAppM.Services
         } 
 
         public TPCANStatus ReadMessages(Action<TPCANMsg, TPCANTimestamp> onMessageReceived)
+{
+    const TPCANHandle handle = PCANBasic.PCAN_USBBUS1;
+    TPCANStatus status;
+
+    do
+    {
+        status = PCANBasic.Read(handle, out var msg, out var ts);
+
+        switch (status)
         {
-            TPCANMsg canMsg;
-            TPCANTimestamp canTimestamp;
-            TPCANHandle handle = PCANBasic.PCAN_USBBUS1;
-            TPCANStatus status;
+            case TPCANStatus.PCAN_ERROR_OK:
+                onMessageReceived?.Invoke(msg, ts);
+                break;
 
-            // Read all messages in the receive queue
-            do
-            {
-                status = PCANBasic.Read(handle, out canMsg, out canTimestamp);
-                if (status != TPCANStatus.PCAN_ERROR_QRCVEMPTY && status != TPCANStatus.PCAN_ERROR_OK)
-                {
-                    // Optionally handle other errors here
-                    if (status == TPCANStatus.PCAN_ERROR_ILLOPERATION)
-                        break;
-                }
-                if (status == TPCANStatus.PCAN_ERROR_OK)
-                {
-                    onMessageReceived?.Invoke(canMsg, canTimestamp);
-                }
-            }
-            while (handle > 0 && (status != TPCANStatus.PCAN_ERROR_QRCVEMPTY));
+            case TPCANStatus.PCAN_ERROR_QRCVEMPTY:
+                // no more messages in queue
+                break;
 
-            return status;
+            default:
+                // some other error occurred — consider logging
+                // e.g. Debug.WriteLine($"PCAN Read error: {status}");
+                return status;
         }
+    }
+    while (status == TPCANStatus.PCAN_ERROR_OK);
+
+    return TPCANStatus.PCAN_ERROR_OK;
+}
 
         public void Dispose()
         {
