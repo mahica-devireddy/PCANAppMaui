@@ -1,4 +1,6 @@
 #if WINDOWS
+
+using LocalizationResourceManager.Maui;
 using Peak.Can.Basic;
 using System;
 using System.Collections.Generic;
