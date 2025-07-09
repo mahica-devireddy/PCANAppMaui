@@ -1,105 +1,5 @@
-private void OnLanguageButtonClicked(object sender, EventArgs e)
-        {
-            LanguageState.CurrentLanguage = LanguageState.CurrentLanguage == "en" ? "es" : "en";
-            _localizationResourceManager.CurrentCulture = new CultureInfo(LanguageState.CurrentLanguage);
-        }
-
-        private async void OnNextButtonClicked(object sender, EventArgs e)
-        {
-            await Navigation.PushAsync(new Menu(_localizationResourceManager));
-        }
-
-        private void StatusImage1_Clicked(object sender, EventArgs e)
-        {
-
-        }
-
-        private void OnOshkoshLogoClicked(object sender, EventArgs e)
-        {
-            SideMenu.IsVisible = true;
-            SideMenuDim.IsVisible = true;
-
-            if (SideMenu.Width == 0)
-            {
-                // Wait for the menu to be measured, then animate
-                SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
-            }
-            else
-            {
-                AnimateSideMenuIn();
-            }
-        }
-
-        private async void SideMenu_SizeChangedAnimateIn(object? sender, EventArgs e)
-        {
-            if (SideMenu.Width > 0)
-            {
-                SideMenu.SizeChanged -= SideMenu_SizeChangedAnimateIn;
-                await AnimateSideMenuIn();
-            }
-        }
-
-        private async Task AnimateSideMenuIn()
-        {
-            SideMenu.TranslationX = -SideMenu.Width;
-            await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
-        }
-
-        private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
-        {
-            SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
-            _sideMenuFirstOpen = false;
-            SideMenu.TranslationX = -SideMenu.Width;
-            await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
-        }
-
-        private async void OnCloseSideMenuClicked(object sender, EventArgs e)
-        {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn); // Slide out
-            SideMenu.IsVisible = false;
-            SideMenuDim.IsVisible = false;
-        }
-
-        private async void OnMenuClicked(object sender, EventArgs e)
-        {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
-            SideMenuDim.IsVisible = false;
-            await Navigation.PushAsync(new Menu(_localizationResourceManager));
-        }
-
-        private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
-        {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
-            SideMenuDim.IsVisible = false;
-            await Navigation.PushAsync(new BAS(_localizationResourceManager));
-        }
-
-        private async void OnKzValveMenuClicked(object sender, EventArgs e)
-        {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
-            SideMenuDim.IsVisible = false;
-            await Navigation.PushAsync(new KZV(_localizationResourceManager));
-        }
-
-        private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
-        {
-            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
-            SideMenu.IsVisible = false;
-            SideMenuDim.IsVisible = false;
-            await Navigation.PushAsync(new FTLS(_localizationResourceManager));
-        }
-    }
-
-    public static class LanguageState
-    {
-        public static string CurrentLanguage { get; set; } = "en";
-        public static bool IsSpanish => CurrentLanguage == "es";
-    }
-}
 #if WINDOWS
+
 using System;
 using System.Collections.Generic;
 using System.Timers;
@@ -118,20 +18,20 @@ namespace PCANAppM
     {
         private readonly ILocalizationResourceManager _loc;
         private readonly CanBusService _bus;
-        private int _previousDeviceCount = 0; // Track previous device count
 
-        public MainPage(ILocalizationResourceManager localizationResourceManager, CanBusService canBusService)
+        private bool _sideMenuFirstOpen = true; 
+
+        public MainPage(ILocalizationResourceManager loc, CanBusService bus)
         {
-            _loc = localizationResourceManager;
-            _bus = canBusService;
+            _loc = loc;
+            _bus = bus;
             InitializeComponent();
 
             // Subscribe to service events
             _bus.DeviceListChanged += OnDeviceListChanged;
             _bus.Feedback += OnFeedback;
             _bus.ErrorPrompt += OnErrorPrompt;
-            _bus.LoggingStarted += OnLoggingStarted;
-            _bus.LoggingStopped += OnLoggingStopped;
+
             _bus.MessageReceived += OnMessageReceived;
 
             UpdateDeviceList();
@@ -149,8 +49,7 @@ namespace PCANAppM
             _bus.DeviceListChanged -= OnDeviceListChanged;
             _bus.Feedback -= OnFeedback;
             _bus.ErrorPrompt -= OnErrorPrompt;
-            _bus.LoggingStarted -= OnLoggingStarted;
-            _bus.LoggingStopped -= OnLoggingStopped;
+
             _bus.MessageReceived -= OnMessageReceived;
         }
 
@@ -169,19 +68,19 @@ namespace PCANAppM
             string imageSource;
 
             // Device plugged in (transition from 0 to >0)
-            if (_previousDeviceCount == 0 && devices.Count > 0)
+            if (_bus.PreviousDeviceCount == 0 && _bus.DeviceCount > 0)
             {
                 status = (devices[0] ?? "PCAN USB") + " " + _loc["Status2"];
                 imageSource = "green_check.png";
             }
-            // Device unplugged (transition from >0 to 0)
-            else if (_previousDeviceCount > 0 && devices.Count == 0)
+            // Device unplugged (transition from > 0 to 0)
+            else if (_bus.PreviousDeviceCount != 0 && _bus.DeviceCount == 0)
             {
                 status = _loc["Status1"];
                 imageSource = "red_ex.png";
             }
             // No transition, just update to current state
-            else if (devices.Count > 0)
+            else if (_bus.DeviceCount > 0)
             {
                 status = (devices[0] ?? "PCAN USB") + " " + _loc["Status2"];
                 imageSource = "green_check.png";
@@ -192,7 +91,7 @@ namespace PCANAppM
                 imageSource = "red_ex.png";
             }
 
-            _previousDeviceCount = devices.Count;
+            _bus.PreviousDeviceCount = 0;
 
             if (this.FindByName<Label>("StatusLabel") is Label statusLabel)
                 statusLabel.Text = status;
@@ -233,11 +132,12 @@ namespace PCANAppM
         {
             if (e.SelectedItem is string deviceName)
             {
-                bool success = _bus.Initialize(deviceName, "250 kbit/s", enableRead: false);
+                //bool success = _bus.Initialize(deviceName, "250 kbit/s", enableRead: true);
+                bool success = _bus.IsConnected;
                 UpdateDeviceList();
                 if (!success)
                 {
-                    DisplayAlert("Error", "Failed to initialize device.", "OK");
+                    //DisplayAlert("Error", "Failed to initialize device.", "OK");
                 }
             }
         }
@@ -245,7 +145,7 @@ namespace PCANAppM
         private async void OnStatusImageClicked(object sender, EventArgs e)
         {
             var devices = _bus.AvailableDevices;
-            if (devices.Count > 0)
+            if (_bus.DeviceCount > 0)
             {
                 // Device is connected, navigate to Menu
                 await Navigation.PushAsync(new Menu(_loc, _bus));
@@ -264,18 +164,119 @@ namespace PCANAppM
             ConnectionDialog.IsVisible = false;
         }
 
-        private void OnOshkoshLogoClicked(object sender, EventArgs e) { /* … */ }
-        private void OnLanguageButtonClicked(object sender, EventArgs e) { /* … */ }
-        private void OnMenuClicked(object sender, EventArgs e) { /* … */ }
-        private void OnAngleSensorMenuClicked(object sender, EventArgs e) { /* … */ }
-        private void OnKzValveMenuClicked(object sender, EventArgs e) { /* … */ }
-        private void OnFluidTankLevelMenuClicked(object sender, EventArgs e) { /* … */ }
-        private void OnCloseSideMenuClicked(object sender, EventArgs e)
+         private void OnLanguageButtonClicked(object sender, EventArgs e)
         {
-            SideMenu.IsVisible = false;
-            SideMenuDim.IsVisible = false;
+            LanguageState.CurrentLanguage =
+                LanguageState.CurrentLanguage == "en" ? "es" : "en";
+            _loc.CurrentCulture =
+                new CultureInfo(LanguageState.CurrentLanguage);
             UpdateDeviceList();
         }
+
+        private async void OnNextButtonClicked(object sender, EventArgs e)
+        {
+            await Navigation.PushAsync(new Menu(_loc, _bus));
+        }
+
+        private void StatusImage1_Clicked(object sender, EventArgs e)
+        {
+
+        }
+
+        private async void OnOshkoshLogoClicked(object sender, EventArgs e)
+        {
+            SideMenu.IsVisible = true;
+            SideMenuDim.IsVisible = true;
+
+            if (SideMenu.Width == 0)
+            {
+                // Wait for the menu to be measured, then animate
+                SideMenu.SizeChanged += SideMenu_SizeChangedAnimateIn;
+            }
+            else
+            {
+                await AnimateSideMenuIn();
+            }
+        }
+
+        private async void SideMenu_SizeChangedAnimateIn(object? sender, EventArgs e)
+        {
+            if (SideMenu.Width > 0)
+            {
+                SideMenu.SizeChanged -= SideMenu_SizeChangedAnimateIn;
+                await AnimateSideMenuIn();
+            }
+        }
+
+        private async Task AnimateSideMenuIn()
+        {
+            SideMenu.TranslationX = -SideMenu.Width;
+            await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
+        }
+
+        private async void SideMenuOnFirstSizeChanged(object? sender, EventArgs e)
+        {
+            SideMenu.SizeChanged -= SideMenuOnFirstSizeChanged;
+            _sideMenuFirstOpen = false;
+            SideMenu.TranslationX = -SideMenu.Width;
+            await SideMenu.TranslateTo(0, 0, 250, Easing.SinOut);
+        }
+
+        private async void OnCloseSideMenuClicked(object sender, EventArgs e)
+        {
+            await SideMenu.TranslateTo(-SideMenu.Width, 0, 250, Easing.SinIn); // Slide out
+            SideMenu.IsVisible = false;
+            SideMenuDim.IsVisible = false;
+        }
+
+        private async void OnHomeClicked(object sender, EventArgs e)
+        {
+            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+            SideMenu.IsVisible = false;
+            SideMenuDim.IsVisible = false;
+            await Navigation.PushAsync(new MainPage(_loc, _bus));
+        }
+
+        private async void OnMenuClicked(object sender, EventArgs e)
+        {
+            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+            SideMenu.IsVisible = false;
+            SideMenuDim.IsVisible = false;
+            await Navigation.PushAsync(new Menu(_loc, _bus));
+        }
+
+        private async void OnAngleSensorMenuClicked(object sender, EventArgs e)
+        {
+            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+            SideMenu.IsVisible = false;
+            SideMenuDim.IsVisible = false;
+            await Navigation.PushAsync(new BAS(_loc, _bus));
+        }
+
+        private async void OnKzValveMenuClicked(object sender, EventArgs e)
+        {
+            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+            SideMenu.IsVisible = false;
+            SideMenuDim.IsVisible = false;
+            await Navigation.PushAsync(new KZV(_loc, _bus));
+        }
+
+        private async void OnFluidTankLevelMenuClicked(object sender, EventArgs e)
+        {
+            await SideMenu.TranslateTo(-SideMenu.Width, 0, 200, Easing.SinIn);
+            SideMenu.IsVisible = false;
+            SideMenuDim.IsVisible = false;
+            await Navigation.PushAsync(new FTLS(_loc, _bus));
+        }
     }
+
+    public static class LanguageState
+    {
+        public static string CurrentLanguage { get; set; } = "en";
+        public static bool IsSpanish => CurrentLanguage == "es";
+    }
+    
 }
+
+
 #endif
