@@ -3,21 +3,27 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"  
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"  
     xmlns:localization="clr-namespace:LocalizationResourceManager.Maui;assembly=LocalizationResourceManager.Maui"  
-    xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui"  
+    xmlns:shell="http://schemas.microsoft.com/dotnet/2021/maui" 
+    Shell.BackButtonBehavior="{StaticResource NoBackButtonBehavior}"
     shell:Shell.NavBarIsVisible="False"  
     x:Class="PCANAppM.MainPage"  
     BackgroundColor="#121212">
+
     <ContentPage.Resources>
-        <Style x:Key="SideMenuButtonStyle" TargetType="Button">
-            <Setter Property="BackgroundColor" Value="Transparent"/>
-            <Setter Property="TextColor" Value="WhiteSmoke"/>
-            <Setter Property="FontAttributes" Value="Bold"/>
-            <Setter Property="FontSize" Value="20"/>
-            <Setter Property="CornerRadius" Value="0"/>
-            <Setter Property="BorderColor" Value="Transparent"/>
-            <Setter Property="BorderWidth" Value="5"/>
-            <Setter Property="HorizontalOptions" Value="FillAndExpand"/>
+        <Style x:Key="CustomAlertOkButtonStyle" TargetType="Button">
             <Setter Property="FontFamily" Value="BarlowRegular"/>
+            <Setter Property="BackgroundColor" Value="#121212"/>
+            <Setter Property="TextColor" Value="GhostWhite"/>
+            <Setter Property="FontSize" Value="28"/>
+            <Setter Property="WidthRequest" Value="200"/>
+            <Setter Property="HeightRequest" Value="60"/>
+            <Setter Property="CornerRadius" Value="30"/>
+            <Setter Property="HorizontalOptions" Value="Center"/>
+            <Setter Property="Shadow">
+                <Setter.Value>
+                    <Shadow Brush="Black" Offset="0,4" Radius="10" Opacity="0.7"/>
+                </Setter.Value>
+            </Setter>
             <Setter Property="VisualStateManager.VisualStateGroups">
                 <Setter.Value>
                     <VisualStateGroupList>
@@ -25,20 +31,72 @@
                             <VisualState x:Name="PointerOver">
                                 <VisualState.Setters>
                                     <Setter Property="BackgroundColor" Value="#0076CC"/>
-                                    <Setter Property="TextColor" Value="WhiteSmoke"/>
+                                    <Setter Property="TextColor" Value="GhostWhite"/>
                                 </VisualState.Setters>
                             </VisualState>
                             <VisualState x:Name="Pressed">
                                 <VisualState.Setters>
-                                    <Setter Property="Scale" Value="0.95"/>
+                                    <Setter Property="Scale" Value="1.0"/>
                                     <Setter Property="BackgroundColor" Value="#0076CC"/>
-                                    <Setter Property="TextColor" Value="WhiteSmoke"/>
+                                    <Setter Property="TextColor" Value="GhostWhite"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Normal">
+                                <VisualState.Setters>
+                                    <Setter Property="BackgroundColor" Value="#121212"/>
+                                    <Setter Property="TextColor" Value="GhostWhite"/>
+                                    <Setter Property="Scale" Value="1"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                        </VisualStateGroup>
+                    </VisualStateGroupList>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="SideMenuButtonStyle" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent"/>
+            <Setter Property="TextColor" Value="GhostWhite"/>
+            <Setter Property="FontAttributes" Value="Bold"/>
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="CornerRadius" Value="0"/>
+            <Setter Property="BorderColor" Value="Transparent"/>
+            <Setter Property="BorderWidth" Value="5"/>
+            <Setter Property="HorizontalOptions" Value="FillAndExpand"/>
+            <Setter Property="FontFamily" Value="BarlowRegular"/>
+            <Setter Property="Shadow">
+                <Setter.Value>
+                    <Shadow Brush="Transparent" Offset="0,0" Radius="10" Opacity="1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="VisualStateManager.VisualStateGroups">
+                <Setter.Value>
+                    <VisualStateGroupList>
+                        <VisualStateGroup x:Name="CommonStates">
+                            <VisualState x:Name="PointerOver">
+                                <VisualState.Setters>
+                                    <Setter Property="Shadow">
+                                        <Shadow Brush="White" Offset="0,0" Radius="15" Opacity="0.8"/>
+                                    </Setter>
+                                    <Setter Property="TextColor" Value="White"/>
+                                </VisualState.Setters>
+                            </VisualState>
+                            <VisualState x:Name="Pressed">
+                                <VisualState.Setters>
+                                    <Setter Property="Shadow">
+                                        <Shadow Brush="White" Offset="0,0" Radius="20" Opacity="1"/>
+                                    </Setter>
+                                    <Setter Property="TextColor" Value="White"/>
+                                    <Setter Property="Scale" Value="0.97"/>
                                 </VisualState.Setters>
                             </VisualState>
                             <VisualState x:Name="Normal">
                                 <VisualState.Setters>
                                     <Setter Property="BackgroundColor" Value="Transparent"/>
-                                    <Setter Property="TextColor" Value="WhiteSmoke"/>
+                                    <Setter Property="TextColor" Value="GhostWhite"/>
+                                    <Setter Property="Shadow">
+                                        <Shadow Brush="Transparent" Offset="0,0" Radius="10" Opacity="1"/>
+                                    </Setter>
                                     <Setter Property="Scale" Value="1"/>
                                 </VisualState.Setters>
                             </VisualState>
@@ -87,8 +145,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        
     </ContentPage.Resources>
+    
     <Grid>
         <!-- Main layout grid (header, content, etc.) -->
         <Grid x:Name="MainLayout" RowDefinitions="Auto,*,Auto" ColumnDefinitions="*">
@@ -98,15 +156,13 @@
                              Source="oshkosh_logo.png"
                              WidthRequest="180"
                              Style="{StaticResource HeaderImageButtonStyle}"
-                             Clicked="OnOshkoshLogoClicked" />
-                <!-- Language toggle 
-                Clicked="OnLanguageButtonClicked"-->
+                             Clicked="OnOshkoshLogoClicked"/>
+                <!-- Language toggle"-->
                 <ImageButton x:Name="LanguageButton"
                              Grid.Column="2"
                              Source="language_icon.png"
                              Style="{StaticResource HeaderImageButtonStyle}"
-                             Clicked="OnLanguageButtonClicked"
-                              />
+                             Clicked="OnLanguageButtonClicked" />
             </Grid>
 
             <!-- MAIN CONTENT (everything except header and dialog) -->
@@ -130,13 +186,13 @@
                            FontSize="50"  
                            FontAttributes="Bold"
                            FontFamily="BarlowRegular"
-                           TextColor="WhiteSmoke"  
+                           TextColor="GhostWhite"  
                            HorizontalTextAlignment="Center" />
 
                     <Rectangle Fill="Transparent" HeightRequest="5" />
 
                     <!-- Status icon (green_check.png or red_ex.png) -->
-                    <ImageButton x:Name="StatusImage1"
+                    <ImageButton x:Name="StatusImage"
                      HeightRequest="100"
                      Aspect="AspectFit"
                      BackgroundColor="Transparent"
@@ -166,7 +222,7 @@
 
             <!-- Connection Dialog -->
             <Grid x:Name="ConnectionDialog" Grid.Row="1" VerticalOptions="Center" HorizontalOptions="Center" IsVisible="False">
-                <Frame BackgroundColor="Black"
+                <Frame BackgroundColor="#121212"
                        Padding="0"
                        CornerRadius="10"
                        WidthRequest="800"
@@ -179,15 +235,15 @@
                                      BackgroundColor="White"
                                      Padding="40,30"
                                      Spacing="10">
-                            <Label Text="Connection Required"
+                            <Label Text="{localization:Translate ConnectionRequired}"
                                    FontSize="60"
                                    FontAttributes="Bold"
-                                   TextColor="Black"
+                                   TextColor="#121212"
                                    FontFamily="BarlowRegular"
                                    HorizontalTextAlignment="Center" />
-                            <Label Text="You must plug in PCAN USB (631-6195-003)"
+                            <Label Text="{localization:Translate PlugIn}"
                                    FontSize="30"
-                                   TextColor="Black"
+                                   TextColor="#121212"
                                    FontFamily="BarlowRegular"
                                    HorizontalTextAlignment="Center" />
                         </StackLayout>
@@ -195,7 +251,7 @@
                         <!-- Gray Area: Black Bar + Centered OK Button -->
                         <Grid Grid.Row="1" RowDefinitions="10,*" ColumnDefinitions="*">
                             <!-- Black separator bar -->
-                            <BoxView Grid.Row="0" HeightRequest="10" BackgroundColor="Black" HorizontalOptions="Fill" />
+                            <BoxView Grid.Row="0" HeightRequest="10" BackgroundColor="#121212" HorizontalOptions="Fill" />
 
                             <!-- OK Button centered in remaining gray area -->
                             <StackLayout Grid.Row="1"
@@ -203,25 +259,23 @@
                                          HorizontalOptions="Center">
                                 <Button Text="OK"
                                         FontFamily="BarlowRegular"
-                                        BackgroundColor="Black"
-                                        TextColor="WhiteSmoke"
+                                        BackgroundColor="#121212"
+                                        TextColor="GhostWhite"
                                         FontSize="28"
                                         WidthRequest="200"
                                         HeightRequest="60"
                                         CornerRadius="30"
                                         HorizontalOptions="Center"
+                                        Style="{StaticResource CustomAlertOkButtonStyle}"
                                         Clicked="OnConnectionDialogOkClicked" />
                             </StackLayout>
                         </Grid>
-
-                        <!-- (No changes to the footer row) -->
                     </Grid>
                 </Frame>
             </Grid>
         </Grid>
 
-        <!--                                                                             SIDE MENU UI                                                                           -->
-
+        <!--                                        SIDE MENU UI                                               -->
 
         <!-- Dimmed background overlay (covers only the content, not the header) -->
         <BoxView x:Name="SideMenuDim"
@@ -261,69 +315,56 @@
                     Grid.Column="1"
                     Text="✕"
                     FontSize="30"
-                    TextColor="WhiteSmoke"
+                    TextColor="GhostWhite"
                     BackgroundColor="Transparent"
                     HorizontalOptions="End"
                     VerticalOptions="Start"
                     Clicked="OnCloseSideMenuClicked"
+                    Style="{StaticResource SideMenuButtonStyle}"
                     Padding="0"
                     WidthRequest="40"
                     HeightRequest="40" />
 
-            <!-- Dashboard Title under the X button -->
-            <Label Grid.Row="0"
-                   Grid.Column="0"
-                   Text="Dashboard"
-                   FontSize="36"
-                   TextColor="WhiteSmoke"
-                   FontFamily="BarlowRegular"
-                   FontAttributes="Bold"
-                   VerticalOptions="Center"
-                   HorizontalOptions="Center"
-                   Margin="30,60,0,0"/>
-
             <!-- Menu Buttons with dividers -->
             <VerticalStackLayout Grid.Row="1" Grid.ColumnSpan="2"
-                                 VerticalOptions="Start"
-                                 Spacing="0"
-                                 Padding="0,30,0,30">
-                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
-                    <Frame.Shadow>
-                        <Shadow Brush="Black" Opacity="0.5" Offset="0,4" Radius="8"/>
-                    </Frame.Shadow>
-                </Frame>
-                <Button Text="{localization:Translate TheMenu}"
-                        Clicked="OnMenuClicked"
-                        Style="{StaticResource SideMenuButtonStyle}" />
-                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
-                    <Frame.Shadow>
-                        <Shadow Brush="Black" Opacity="1.0" Offset="0,4" Radius="8"/>
-                    </Frame.Shadow>
-                </Frame>
-                <Button Text="{localization:Translate BAS}"
-                        Clicked="OnAngleSensorMenuClicked"
-                        Style="{StaticResource SideMenuButtonStyle}" />
-                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
-                    <Frame.Shadow>
-                        <Shadow Brush="Black" Opacity="1.0" Offset="0,4" Radius="8"/>
-                    </Frame.Shadow>
-                </Frame>
-                <Button Text="{localization:Translate KZV}"
-                        Clicked="OnKzValveMenuClicked"
-                        Style="{StaticResource SideMenuButtonStyle}" />
-                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
-                    <Frame.Shadow>
-                        <Shadow Brush="Black" Opacity="1.0" Offset="0,4" Radius="8"/>
-                    </Frame.Shadow>
-                </Frame>
-                <Button Text="{localization:Translate FTLS}" 
-                        Clicked="OnFluidTankLevelMenuClicked"
-                        Style="{StaticResource SideMenuButtonStyle}" />
-                <Frame HeightRequest="2" BackgroundColor="WhiteSmoke" HasShadow="True" Margin="0,10,0,10" Padding="0" CornerRadius="1" HorizontalOptions="FillAndExpand">
-                    <Frame.Shadow>
-                        <Shadow Brush="Black" Opacity="1.0" Offset="0,8" Radius="16"/>
-                    </Frame.Shadow>
-                </Frame>
+                     VerticalOptions="Start"
+                     Spacing="10"
+                     Padding="0,0,0,0">
+
+                <HorizontalStackLayout Spacing="20" VerticalOptions="Center">
+                    <Image Source="home_icon.png" HeightRequest="60" WidthRequest="60" VerticalOptions="Center"/>
+                    <Button Text="{localization:Translate Home}"
+                            Clicked="OnHomeClicked"
+                            Style="{StaticResource SideMenuButtonStyle}" />
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Spacing="20" VerticalOptions="Center">
+                    <Image Source="menu_icon.png" HeightRequest="60" WidthRequest="60" VerticalOptions="Center"/>
+                    <Button Text="{localization:Translate TheMenu}"
+                            Clicked="OnMenuClicked"
+                            Style="{StaticResource SideMenuButtonStyle}" />
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Spacing="0" VerticalOptions="Center">
+                    <Image Source="as_icon.png" HeightRequest="80" WidthRequest="80" VerticalOptions="Center"/>
+                    <Button Text="{localization:Translate BAS}"
+                            Clicked="OnAngleSensorMenuClicked"
+                            Style="{StaticResource SideMenuButtonStyle}" />
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Spacing="0" VerticalOptions="Center">
+                    <Image Source="kzv_icon.png" HeightRequest="80" WidthRequest="80" VerticalOptions="Center"/>
+                    <Button Text="{localization:Translate KZV}"
+                            Clicked="OnKzValveMenuClicked"
+                            Style="{StaticResource SideMenuButtonStyle}" /> 
+                </HorizontalStackLayout>
+
+                <HorizontalStackLayout Spacing="0" VerticalOptions="Center">
+                    <Image Source="ls_icon.png" HeightRequest="80" WidthRequest="80" VerticalOptions="Center"/>
+                    <Button Text="{localization:Translate FTLS}" 
+                            Clicked="OnFluidTankLevelMenuClicked"
+                            Style="{StaticResource SideMenuButtonStyle}" /> 
+                </HorizontalStackLayout>
             </VerticalStackLayout>
         </Grid>
     </Grid>
